@@ -298,7 +298,7 @@ export default function QuickAddApp({ editingApp, onEditDone, readOnly }) {
           onClick={() => { onEditDone?.(); setForm(DEFAULT) }}
           className="w-full py-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
         >
-          Annuler l'édition
+          Annuler l&apos;édition
         </button>
       )}
 

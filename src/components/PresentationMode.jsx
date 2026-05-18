@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import GraphCanvas from './graph/GraphCanvas'
 import KpiBar from './KpiBar'
 
@@ -7,7 +7,10 @@ export default function PresentationMode({ onExit }) {
   const [laserVisible, setLaserVisible] = useState(false)
   const [laserColor, setLaserColor] = useState('#ef4444')
 
-  const LASER_COLORS = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#a855f7']
+  const LASER_COLORS = useMemo(
+    () => ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#a855f7'],
+    [],
+  )
 
   const handleMouseMove = useCallback((e) => {
     setMousePos({ x: e.clientX, y: e.clientY })

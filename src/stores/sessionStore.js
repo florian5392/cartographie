@@ -246,7 +246,7 @@ const useSessionStore = create((set, get) => ({
 
   // ---- refreshSessions ----
   refreshSessions: async () => {
-    const { demoMode, applications, flux } = get()
+    const { demoMode } = get()
     if (demoMode) {
       set({ sessions: [{ ...demoSession, _appCount: demoApplications.length, _fluxCount: demoFlux.length }] })
     } else {

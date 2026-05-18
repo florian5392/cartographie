@@ -10,13 +10,12 @@ function KpiCard({ label, value, color = 'text-white' }) {
 }
 
 export default function KpiBar({ onExport, onPresentation, onBack, onToggleStatus, isReadOnly }) {
-  const { applications, flux, deploiements, etablissements, session, isDirty, demoMode } =
+  const { applications, flux, etablissements, session, demoMode } =
     useSessionStore()
 
   const appCount = applications.length
   const fluxCount = flux.length
   const criticalCount = applications.filter((a) => a.criticite === 'haute').length
-  const criticalFluxCount = flux.filter((f) => f.critique).length
   const etablissementCount = etablissements.length
 
   const appsWithFlux = new Set([
