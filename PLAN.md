@@ -111,53 +111,50 @@
 
 ---
 
-## Phase 3 — Vue Graphe Temps Réel (Semaines 4–5)
+## Phase 3 — Vue Graphe Temps Réel (Semaines 4–5) ✅
 
 ### 3.1 — Canvas principal (`GraphCanvas.jsx`)
 
-- [ ] Intégration React Flow avec le store de session
-- [ ] Layout dynamique selon le périmètre :
-  - **Mono-site** : canvas libre, positionnement automatique en grille (réorganisable par drag)
-  - **Multi-sites** : zone transverse en haut (Global/Multi-sites) + colonnes par établissement
-- [ ] Fond de canvas avec grille subtile (repère visuel pour la projection)
-- [ ] Zoom / pan / fit-to-view
-- [ ] Mini-map optionnelle (activable/désactivable)
+- [x] Intégration React Flow avec le store de session (source de vérité Zustand → sync via useEffect)
+- [x] Layout dynamique selon le périmètre :
+  - **Mono-site** : auto-grid jusqu'à 4 colonnes, calculé quand aucune position n'est stockée ; réorganisable par drag
+  - **Multi-sites** : zone transverse en haut (apps Global/Multi-sites) + colonnes par établissement avec en-têtes visuels (`columnHeader` node type)
+  - `resolvePositions` : utilise les positions stockées, fallback auto-layout pour les nouvelles apps
+- [x] Fond de canvas : grille de points subtile (BackgroundVariant.Dots, gap 22px, couleur #1f2937)
+- [x] Zoom / pan natif React Flow + raccourci Espace → fitView (animé 400ms)
+- [x] Mini-map toggleable via bouton Panel en haut à droite
 
 ### 3.2 — Nœuds applicatifs (`AppNode.jsx`)
 
-- [ ] Design optimisé projection :
-  - Nom de l'app en 18px+ bold
-  - Sous-titre : type de l'application
-  - Bordure colorée selon criticité (rouge = haute, orange = moyenne, gris = basse)
-  - Badge périmètre (visible uniquement en mode multi-sites)
-  - Pastilles couleur des établissements déployés (mode multi-sites)
-- [ ] Handles de connexion visibles au survol (source en bas, target en haut)
-- [ ] Double-clic → ouvrir édition rapide dans le panneau latéral
-- [ ] Animation d'entrée : fade-in + léger scale-up sur 300ms à l'ajout
+- [x] Nom de l'app en 15px bold, sous-titre type, éditeur en gris
+- [x] Bordure gauche colorée selon criticité : rouge (haute), orange (moyenne), gris (basse)
+- [x] Badge périmètre (Global / Multi-sites / Local) affiché uniquement en mode multi-sites
+- [x] Pastilles couleur des établissements déployés (via `appEtabsMap` calculé depuis les déploiements)
+- [x] Badge statut (production / recette / pilote) en coin droit
+- [x] Handles (target top, source bottom) cachés par défaut, révélés au survol (transition opacity)
+- [x] Double-clic → ouvre l'édition dans QuickAddApp (désactivé en lecture seule)
+- [x] Animation d'entrée `.node-enter` : scale 0.82→1 + fade-in, 280ms easing spring
 
 ### 3.3 — Arêtes flux (`FluxEdge.jsx`)
 
-- [ ] Flèche directionnelle source → cible
-- [ ] Style selon type de flux :
-  - API : trait plein bleu
-  - Fichier : tirets jaunes
-  - BDD : pointillés violets
-  - EDI : tirets verts
-  - Manuel : trait fin gris
-- [ ] Label court sur l'arête (type ou description courte)
-- [ ] Tooltip au survol : description complète, fréquence, type
-- [ ] Animation d'entrée : dessin progressif source → cible sur 400ms
+- [x] Flèche directionnelle source → cible avec `MarkerType.ArrowClosed` coloré par type
+- [x] Style par type : API=trait plein bleu, Fichier=tirets jaunes, BDD=pointillés violets, EDI=tirets verts, Manuel=trait fin gris
+- [x] Label court (flux.label ou type) avec bordure colorée de l'arête
+- [x] Tooltip (attribut `title`) : label + description + fréquence
+- [x] Animation d'entrée `.edge-draw` : stroke-dashoffset 1200→0 sur 420ms
 
 ### 3.4 — Interactions en séance
 
-- [ ] Clic sur un nœud → surbrillance des connexions entrantes/sortantes (dimmer le reste)
-- [ ] Clic sur le fond → désélection, retour à l'affichage normal
-- [ ] Drag & drop des nœuds → positions mises à jour dans le store (persistées à la sauvegarde)
-- [ ] Double-clic sur le canvas (zone vide) → ouvrir le panneau "Ajouter une application"
-- [ ] Touche Suppr → supprimer le nœud ou l'arête sélectionné (avec confirmation)
-- [ ] Raccourci Espace → fit-to-view (recadrage rapide)
+- [x] Clic nœud → surbrillance des connexions entrantes/sortantes (opacity 1), dimming du reste (0.12 nœuds / 0.07 arêtes), transition 200ms
+- [x] Second clic sur le même nœud ou clic sur le fond → désélection, retour à l'affichage normal
+- [x] Drag & drop → `onNodeDragStop` met à jour les positions dans le store (isDirty → sauvegardé à l'autosave)
+- [x] Double-clic sur le canvas (zone vide) → ouvre l'onglet "Applications" dans le panneau (`onOpenAddApp` prop câblée dans SessionManager)
+- [x] Suppr / Backspace → modal de confirmation avec liste des éléments à supprimer (actions annulables via Ctrl+Z)
+- [x] `deleteKeyCode={null}` sur ReactFlow : empêche les suppressions non confirmées
+- [x] Raccourci Espace → fitView (400ms)
+- [x] Mode lecture seule : drag, connect, delete et édition désactivés
 
-**Livrable** : Graphe interactif temps réel avec animations, optimisé pour projection.
+**Livrable** : Graphe interactif temps réel avec animations, layouts automatiques, optimisé pour projection.
 
 ---
 
@@ -329,14 +326,14 @@
 | 0 | Setup & Fondations | S1 | ✅ |
 | 1 | Client API & Mode Démo | S2 | ✅ |
 | 2 | Gestion des Sessions | S3 | ✅ |
-| 3 | Vue Graphe Temps Réel | S4–S5 | ⬜ |
+| 3 | Vue Graphe Temps Réel | S4–S5 | ✅ |
 | 4 | Panneau de Saisie Rapide | S6 | ⬜ |
 | 5 | KPIs, Présentation & Export | S7 | ⬜ |
 | 6 | Fusion & Consolidation | S8 | ⬜ |
 | 7 | Tests & Qualité | S9 | ⬜ |
 | 8 | Production & Documentation | S10 | ⬜ |
 
-**Durée totale estimée : 10 semaines — 3 semaines réalisées**
+**Durée totale estimée : 10 semaines — 5 semaines réalisées (Phases 0–3)**
 
 ---
 
