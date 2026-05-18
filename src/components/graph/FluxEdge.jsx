@@ -1,80 +1,55 @@
-import { BaseEdge, EdgeLabelRenderer, getBezierPath } from 'reactflow'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, MarkerType } from 'reactflow'
 
-const fluxStyles = {
-  API: {
-    stroke: '#60a5fa',
-    strokeDasharray: undefined,
-    strokeWidth: 2,
-    label: 'API',
-  },
-  Fichier: {
-    stroke: '#facc15',
-    strokeDasharray: '6 3',
-    strokeWidth: 2,
-    label: 'Fichier',
-  },
-  BDD: {
-    stroke: '#c084fc',
-    strokeDasharray: '2 2',
-    strokeWidth: 2,
-    label: 'BDD',
-  },
-  Manuel: {
-    stroke: '#9ca3af',
-    strokeDasharray: undefined,
-    strokeWidth: 1,
-    label: 'Manuel',
-  },
-  EDI: {
-    stroke: '#4ade80',
-    strokeDasharray: '8 3',
-    strokeWidth: 2,
-    label: 'EDI',
-  },
-  Autre: {
-    stroke: '#9ca3af',
-    strokeDasharray: undefined,
-    strokeWidth: 1.5,
-    label: 'Autre',
-  },
+const FLUX_STYLES = {
+  API:    { stroke: '#60a5fa', strokeDasharray: undefined,  strokeWidth: 2 },
+  Fichier:{ stroke: '#facc15', strokeDasharray: '7 4',      strokeWidth: 2 },
+  BDD:    { stroke: '#c084fc', strokeDasharray: '2 3',      strokeWidth: 2 },
+  Manuel: { stroke: '#6b7280', strokeDasharray: undefined,  strokeWidth: 1.5 },
+  EDI:    { stroke: '#4ade80', strokeDasharray: '10 4',     strokeWidth: 2 },
+  Autre:  { stroke: '#9ca3af', strokeDasharray: undefined,  strokeWidth: 1.5 },
 }
 
 export default function FluxEdge({
   id,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
+  sourceX, sourceY,
+  targetX, targetY,
+  sourcePosition, targetPosition,
   data,
-  markerEnd,
 }) {
-  const flux = data?.flux || {}
-  const style = fluxStyles[flux.type] || fluxStyles.Autre
+  const flux  = data?.flux || {}
+  const style = FLUX_STYLES[flux.type] || FLUX_STYLES.Autre
 
   const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
+    sourceX, sourceY, sourcePosition,
+    targetX, targetY, targetPosition,
   })
 
-  const edgeStyle = {
-    stroke: style.stroke,
-    strokeWidth: style.strokeWidth,
-    strokeDasharray: style.strokeDasharray,
-  }
-
-  const tooltipText = [flux.label, flux.description, flux.frequence]
+  const tooltip = [flux.label, flux.description, flux.frequence]
     .filter(Boolean)
     .join(' — ')
 
+  const edgeStyle = {
+    stroke:           style.stroke,
+    strokeWidth:      style.strokeWidth,
+    strokeDasharray:  style.strokeDasharray,
+  }
+
+  const markerEnd = {
+    type:  MarkerType.ArrowClosed,
+    color: style.stroke,
+    width: 16,
+    height: 16,
+  }
+
   return (
     <>
-      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={edgeStyle} />
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={JSON.stringify(markerEnd)}
+        style={edgeStyle}
+        className="edge-draw"
+      />
       <EdgeLabelRenderer>
         <div
           style={{
@@ -85,15 +60,16 @@ export default function FluxEdge({
           className="nodrag nopan"
         >
           <div
-            title={tooltipText}
+            title={tooltip}
             className="px-1.5 py-0.5 rounded text-xs font-medium shadow-md cursor-default select-none"
             style={{
-              backgroundColor: '#1f2937',
+              backgroundColor: '#111827',
               border: `1px solid ${style.stroke}`,
               color: style.stroke,
+              fontSize: '10px',
             }}
           >
-            {flux.label || style.label}
+            {flux.label || flux.type || 'Flux'}
           </div>
         </div>
       </EdgeLabelRenderer>

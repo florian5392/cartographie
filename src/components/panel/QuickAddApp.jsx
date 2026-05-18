@@ -1,173 +1,309 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import useSessionStore from '../../stores/sessionStore'
 
-const defaultForm = {
-  nom: '',
-  type: '',
-  editeur: '',
-  version: '',
-  criticite: 'moyenne',
-  description: '',
-  responsable: '',
-  statut: 'production',
-  couleur: '#6366f1',
+const APP_TYPES = ['ERP', 'DPI', 'SIH', 'Imagerie', 'Messagerie', 'Annuaire', 'BI', 'CRM', 'Métier', 'Autre']
+const PERIMETRES = ['global', 'multi-sites', 'local']
+const CRITICITES = [
+  { value: 'haute',   label: 'Haute',   dot: 'bg-red-500',    active: 'border-red-500 text-red-400' },
+  { value: 'moyenne', label: 'Moyenne', dot: 'bg-orange-500', active: 'border-orange-500 text-orange-400' },
+  { value: 'basse',   label: 'Basse',   dot: 'bg-gray-400',   active: 'border-gray-400 text-gray-300' },
+]
+const STATUTS = ['production', 'recette', 'pilote', 'développement', 'retraité']
+
+const DEFAULT = {
+  nom: '', type: '', criticite: 'moyenne', perimetre: 'local',
+  description: '', editeur: '', version: '', responsable: '',
+  statut: 'production', couleur: '#6366f1',
 }
 
-const APP_TYPES = ['ERP', 'DPI', 'SIH', 'Imagerie', 'Messagerie', 'Annuaire', 'BI', 'Autre']
-const CRITICITES = ['haute', 'moyenne', 'basse']
-const STATUTS = ['production', 'recette', 'développement', 'retraité']
+export default function QuickAddApp({ editingApp, onEditDone, readOnly }) {
+  const { addApplication, updateApplication, applications, session } = useSessionStore()
+  const [form, setForm]           = useState(DEFAULT)
+  const [showExtra, setShowExtra] = useState(false)
+  const [showDesc, setShowDesc]   = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [flash, setFlash]         = useState(null)
+  const nomRef = useRef(null)
 
-export default function QuickAddApp() {
-  const { addApplication, session } = useSessionStore()
-  const [form, setForm] = useState(defaultForm)
-  const [success, setSuccess] = useState(false)
+  const isMultiSite = session?.perimetre === 'multi-sites'
+  const isEditing   = !!editingApp
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setForm((f) => ({ ...f, [name]: value }))
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (editingApp) {
+      setForm({ ...DEFAULT, ...editingApp })
+      setShowExtra(true)
+      setShowDesc(!!editingApp.description)
+      setTimeout(() => nomRef.current?.focus(), 50)
+    } else {
+      setForm(DEFAULT)
+      setShowExtra(false)
+      setShowDesc(false)
+    }
+  }, [editingApp])
+
+  const handleNomChange = (e) => {
+    const val = e.target.value
+    setForm(f => ({ ...f, nom: val }))
+    if (val.length >= 2) {
+      setSuggestions(
+        applications
+          .filter(a => (!isEditing || a.id !== editingApp?.id) &&
+            a.nom.toLowerCase().includes(val.toLowerCase()))
+          .slice(0, 5),
+      )
+    } else {
+      setSuggestions([])
+    }
+  }
+
+  const applySuggestion = (app) => {
+    setForm(f => ({
+      ...f,
+      nom: app.nom,
+      type: app.type || f.type,
+      criticite: app.criticite || f.criticite,
+      editeur: app.editeur || '',
+      version: app.version || '',
+    }))
+    setSuggestions([])
+    nomRef.current?.focus()
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.nom.trim()) return
+    if (!form.nom.trim() || readOnly) return
 
-    const newApp = {
-      ...form,
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-      sessionId: session?.id,
+    if (isEditing) {
+      updateApplication(editingApp.id, form)
+      setFlash('updated')
+      onEditDone?.()
+    } else {
+      addApplication({ ...form, id: crypto.randomUUID(), sessionId: session?.id })
+      setFlash('added')
+      setForm(DEFAULT)
+      setShowDesc(false)
     }
-    addApplication(newApp)
-    setForm(defaultForm)
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 2000)
+
+    setTimeout(() => setFlash(null), 2000)
+    nomRef.current?.focus()
+  }
+
+  if (readOnly) {
+    return (
+      <div className="text-gray-500 text-sm p-4 text-center">Session en lecture seule</div>
+    )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 p-1">
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">Nom *</label>
+    <form onSubmit={handleSubmit} className="space-y-3">
+
+      {/* Nom + autocomplétion */}
+      <div className="relative">
+        <label className="block text-xs text-gray-400 mb-1">
+          {isEditing ? `Modifier "${editingApp.nom}"` : 'Nom *'}
+        </label>
         <input
-          name="nom"
+          ref={nomRef}
+          autoFocus={!isEditing}
           value={form.nom}
-          onChange={handleChange}
+          onChange={handleNomChange}
+          onBlur={() => setTimeout(() => setSuggestions([]), 150)}
           className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-          placeholder="Ex: SAP ERP"
+          placeholder="Ex : SAP ERP, Mediboard…"
           required
         />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Type</label>
-          <select
-            name="type"
-            value={form.type}
-            onChange={handleChange}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-          >
-            <option value="">— Choisir —</option>
-            {APP_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
+        {suggestions.length > 0 && (
+          <div className="absolute z-20 top-full left-0 right-0 mt-0.5 bg-gray-700 border border-gray-600 rounded shadow-xl">
+            {suggestions.map(app => (
+              <button
+                key={app.id}
+                type="button"
+                onMouseDown={() => applySuggestion(app)}
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-600 flex items-center gap-2"
+              >
+                <span className="text-gray-200">{app.nom}</span>
+                <span className="text-gray-500 text-xs ml-auto">{app.type}</span>
+              </button>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Criticité</label>
-          <select
-            name="criticite"
-            value={form.criticite}
-            onChange={handleChange}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-          >
-            {CRITICITES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Éditeur</label>
-          <input
-            name="editeur"
-            value={form.editeur}
-            onChange={handleChange}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            placeholder="Ex: SAP SE"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Version</label>
-          <input
-            name="version"
-            value={form.version}
-            onChange={handleChange}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            placeholder="Ex: 2024.1"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Statut</label>
-          <select
-            name="statut"
-            value={form.statut}
-            onChange={handleChange}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-          >
-            {STATUTS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Couleur</label>
-          <input
-            type="color"
-            name="couleur"
-            value={form.couleur}
-            onChange={handleChange}
-            className="w-full h-8 bg-gray-700 border border-gray-600 rounded cursor-pointer"
-          />
-        </div>
-      </div>
-
+      {/* Type — pills */}
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Responsable</label>
-        <input
-          name="responsable"
-          value={form.responsable}
-          onChange={handleChange}
-          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-          placeholder="Ex: DSI — Pôle Gestion"
-        />
+        <label className="block text-xs text-gray-400 mb-1">Type</label>
+        <div className="flex flex-wrap gap-1">
+          {APP_TYPES.map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, type: f.type === t ? '' : t }))}
+              className={`px-2 py-0.5 rounded text-xs border transition-colors ${
+                form.type === t
+                  ? 'bg-blue-600 border-blue-500 text-white'
+                  : 'bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Criticité — boutons visuels */}
       <div>
-        <label className="block text-xs text-gray-400 mb-1">Description</label>
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          rows={2}
-          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
-          placeholder="Courte description..."
-        />
+        <label className="block text-xs text-gray-400 mb-1">Criticité</label>
+        <div className="flex gap-1.5">
+          {CRITICITES.map(c => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, criticite: c.value }))}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded border text-xs font-medium transition-colors ${
+                form.criticite === c.value
+                  ? c.active + ' bg-gray-700'
+                  : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${form.criticite === c.value ? c.dot : 'bg-gray-600'}`} />
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Périmètre — multi-sites uniquement */}
+      {isMultiSite && (
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Périmètre</label>
+          <div className="flex gap-1">
+            {PERIMETRES.map(p => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, perimetre: p }))}
+                className={`flex-1 py-1 rounded text-xs border capitalize transition-colors ${
+                  form.perimetre === p
+                    ? 'bg-purple-700 border-purple-500 text-white'
+                    : 'bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Champs supplémentaires (repliés) */}
       <button
-        type="submit"
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm transition-colors"
+        type="button"
+        onClick={() => setShowExtra(v => !v)}
+        className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors"
       >
-        Ajouter l&apos;application
+        <span>{showExtra ? '▾' : '▸'}</span>
+        Champs supplémentaires
       </button>
 
-      {success && (
-        <div className="text-green-400 text-xs text-center">Application ajoutée !</div>
+      {showExtra && (
+        <div className="space-y-2 pl-1 border-l border-gray-700">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Éditeur</label>
+              <input
+                value={form.editeur}
+                onChange={e => setForm(f => ({ ...f, editeur: e.target.value }))}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                placeholder="SAP SE…"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Version</label>
+              <input
+                value={form.version}
+                onChange={e => setForm(f => ({ ...f, version: e.target.value }))}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                placeholder="2024.1"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Statut</label>
+              <select
+                value={form.statut}
+                onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+              >
+                {STATUTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Couleur</label>
+              <input
+                type="color"
+                value={form.couleur}
+                onChange={e => setForm(f => ({ ...f, couleur: e.target.value }))}
+                className="w-full h-8 bg-gray-700 border border-gray-600 rounded cursor-pointer"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Responsable</label>
+            <input
+              value={form.responsable}
+              onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              placeholder="DSI — Pôle Gestion"
+            />
+          </div>
+        </div>
       )}
+
+      {/* Description (repliée) */}
+      <button
+        type="button"
+        onClick={() => setShowDesc(v => !v)}
+        className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors"
+      >
+        <span>{showDesc ? '▾' : '▸'}</span>
+        Description
+      </button>
+      {showDesc && (
+        <textarea
+          value={form.description}
+          onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+          rows={2}
+          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
+          placeholder="Description courte de l'application…"
+        />
+      )}
+
+      {/* Submit */}
+      <button
+        type="submit"
+        className={`w-full font-medium py-2 px-4 rounded text-sm transition-colors ${
+          isEditing
+            ? 'bg-green-600 hover:bg-green-700 text-white'
+            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        }`}
+      >
+        {isEditing ? 'Enregistrer' : 'Ajouter ↵'}
+      </button>
+
+      {isEditing && (
+        <button
+          type="button"
+          onClick={() => { onEditDone?.(); setForm(DEFAULT) }}
+          className="w-full py-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        >
+          Annuler l'édition
+        </button>
+      )}
+
+      {flash === 'added'   && <div className="text-green-400 text-xs text-center">✓ Application ajoutée</div>}
+      {flash === 'updated' && <div className="text-blue-400 text-xs text-center">✓ Modification enregistrée</div>}
     </form>
   )
 }

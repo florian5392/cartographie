@@ -2,7 +2,7 @@ import { useState } from 'react'
 import useSessionStore from '../../stores/sessionStore'
 import * as api from '../../api/nocodb'
 
-export default function QuickAddEtablissement() {
+export default function QuickAddEtablissement({ readOnly }) {
   const { session, etablissements, applications, deploiements, addEtablissement, addDeploiement, removeDeploiement, demoMode } =
     useSessionStore()
 
@@ -11,6 +11,10 @@ export default function QuickAddEtablissement() {
   const [etabSuccess, setEtabSuccess] = useState(false)
   const [depSuccess, setDepSuccess] = useState(false)
   const [error, setError] = useState(null)
+
+  if (readOnly) {
+    return <div className="text-gray-500 text-sm p-4 text-center">Session en lecture seule</div>
+  }
 
   // Only show in multi-sites mode
   if (session?.perimetre !== 'multi-sites') {
