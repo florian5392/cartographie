@@ -1,24 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import useSessionStore from '../../stores/sessionStore'
 import * as api from '../../api/nocodb'
 
-const PERIMETRES = ['mono-site', 'multi-sites', 'domaine métier']
+const PERIMETRES = [
+  { value: 'mono-site', label: 'Mono-site' },
+  { value: 'multi-sites', label: 'Multi-sites' },
+]
 
 export default function SessionSelector() {
-  const { sessions, setSession, demoMode } = useSessionStore()
+  const { sessions, etablissements, setSession, demoMode, applications } = useSessionStore()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     nom: '',
     date: new Date().toISOString().slice(0, 10),
     perimetre: 'mono-site',
+    etablissementCible: '',
     statut: 'en cours',
+    preloadApps: false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setForm((f) => ({ ...f, [name]: value }))
+    const { name, value, type, checked } = e.target
+    setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
   }
 
   const handleCreate = async (e) => {
@@ -27,16 +32,31 @@ export default function SessionSelector() {
     setLoading(true)
     setError(null)
     try {
+      const sessionData = {
+        nom: form.nom.trim(),
+        date: form.date,
+        perimetre: form.perimetre,
+        etablissementCible: form.perimetre === 'mono-site' ? form.etablissementCible : null,
+        statut: 'en cours',
+      }
+
       let newSession
       if (demoMode) {
-        newSession = {
-          ...form,
-          id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-        }
+        newSession = { ...sessionData, id: crypto.randomUUID() }
       } else {
-        newSession = await api.createSession(form)
+        newSession = await api.createSession(sessionData)
         if (!newSession.id && newSession.Id) newSession.id = newSession.Id
       }
+
+      // If preloadApps, copy existing applications to new session
+      if (form.preloadApps && applications.length > 0) {
+        newSession._preloadedApps = applications.map((a) => ({
+          ...a,
+          id: crypto.randomUUID(),
+          sessionId: newSession.id,
+        }))
+      }
+
       await setSession(newSession)
     } catch (e) {
       setError(e.message || 'Erreur lors de la création.')
@@ -52,23 +72,28 @@ export default function SessionSelector() {
   }
 
   const handleDuplicate = async (session) => {
+    setLoading(true)
     const dup = {
       ...session,
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+      id: crypto.randomUUID(),
       nom: `${session.nom} (copie)`,
       statut: 'en cours',
+      _appCount: undefined,
+      _fluxCount: undefined,
     }
     if (!demoMode) {
       try {
         const created = await api.createSession(dup)
         if (created.Id && !created.id) created.id = created.Id
         await setSession(created)
+        setLoading(false)
         return
       } catch {
-        // fall through to demo handling
+        // fall through
       }
     }
     await setSession(dup)
+    setLoading(false)
   }
 
   return (
@@ -76,6 +101,7 @@ export default function SessionSelector() {
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="text-4xl mb-3">◈</div>
           <h1 className="text-3xl font-bold text-white mb-2">Cartographie SI</h1>
           <p className="text-gray-400">Outil d&apos;atelier de cartographie applicative</p>
           {demoMode && (
@@ -88,32 +114,45 @@ export default function SessionSelector() {
         {/* Sessions list */}
         {sessions.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-200 mb-3">Sessions existantes</h2>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Sessions existantes
+            </h2>
             <div className="space-y-2">
               {sessions.map((s) => (
                 <div
                   key={s.id}
-                  className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex items-center justify-between"
+                  className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex items-center justify-between gap-4"
                 >
-                  <div>
-                    <div className="font-medium text-white">{s.nom}</div>
-                    <div className="text-sm text-gray-400 flex gap-3 mt-1">
-                      <span>{s.date}</span>
-                      <span className="capitalize">{s.perimetre}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-white truncate">{s.nom}</span>
                       <span
-                        className={`px-1.5 py-0.5 rounded text-xs ${
+                        className={`shrink-0 px-1.5 py-0.5 rounded text-xs font-medium ${
                           s.statut === 'en cours'
                             ? 'bg-green-900 text-green-300'
-                            : s.statut === 'terminé'
-                            ? 'bg-gray-700 text-gray-400'
-                            : 'bg-blue-900 text-blue-300'
+                            : 'bg-gray-700 text-gray-400'
                         }`}
                       >
                         {s.statut}
                       </span>
+                      {s.statut === 'terminée' && (
+                        <span className="shrink-0 text-gray-500 text-xs">🔒</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span>{s.date}</span>
+                      <span className="capitalize">{s.perimetre}</span>
+                      {s.etablissementCible && (
+                        <span className="text-blue-400">{s.etablissementCible}</span>
+                      )}
+                      {(s._appCount !== undefined || s._fluxCount !== undefined) && (
+                        <span className="text-gray-600">
+                          {s._appCount ?? '?'} apps · {s._fluxCount ?? '?'} flux
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => handleResume(s)}
                       disabled={loading}
@@ -138,7 +177,7 @@ export default function SessionSelector() {
         {/* New session */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-200">Nouvelle session</h2>
+            <h2 className="text-base font-semibold text-gray-200">Nouvelle session</h2>
             {!showForm && (
               <button
                 onClick={() => setShowForm(true)}
@@ -157,11 +196,13 @@ export default function SessionSelector() {
                   name="nom"
                   value={form.nom}
                   onChange={handleChange}
+                  autoFocus
                   className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                   placeholder="Ex: Atelier cartographie — Juin 2024"
                   required
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Date</label>
@@ -175,18 +216,66 @@ export default function SessionSelector() {
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Périmètre</label>
-                  <select
-                    name="perimetre"
-                    value={form.perimetre}
-                    onChange={handleChange}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                  >
+                  <div className="flex gap-2">
                     {PERIMETRES.map((p) => (
-                      <option key={p} value={p}>{p}</option>
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, perimetre: p.value }))}
+                        className={`flex-1 py-2 text-xs rounded border transition-colors ${
+                          form.perimetre === p.value
+                            ? 'bg-blue-600 border-blue-500 text-white'
+                            : 'bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
               </div>
+
+              {/* Etablissement cible — mono-site only */}
+              {form.perimetre === 'mono-site' && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Établissement cible</label>
+                  {etablissements.length > 0 ? (
+                    <select
+                      name="etablissementCible"
+                      value={form.etablissementCible}
+                      onChange={handleChange}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">— Sélectionner —</option>
+                      {etablissements.map((e) => (
+                        <option key={e.id} value={e.nom}>{e.nom}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      name="etablissementCible"
+                      value={form.etablissementCible}
+                      onChange={handleChange}
+                      placeholder="Nom de l'établissement"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Preload apps */}
+              {applications.length > 0 && (
+                <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    name="preloadApps"
+                    checked={form.preloadApps}
+                    onChange={handleChange}
+                    className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+                  />
+                  Pré-charger les {applications.length} applications existantes
+                </label>
+              )}
 
               {error && <div className="text-red-400 text-sm">{error}</div>}
 
@@ -200,7 +289,7 @@ export default function SessionSelector() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => { setShowForm(false); setError(null) }}
                   className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
                 >
                   Annuler

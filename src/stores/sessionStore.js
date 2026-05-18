@@ -36,20 +36,29 @@ const useSessionStore = create((set, get) => ({
   initStore: async () => {
     const reachable = await api.isNocoDBReachable()
     if (!reachable) {
-      set({ demoMode: true, sessions: [demoSession] })
+      set({ demoMode: true, sessions: [{ ...demoSession, _appCount: demoApplications.length, _fluxCount: demoFlux.length }] })
     } else {
       try {
         const sessions = await api.getSessions()
         set({ demoMode: false, sessions })
       } catch {
-        set({ demoMode: true, sessions: [demoSession] })
+        set({ demoMode: true, sessions: [{ ...demoSession, _appCount: demoApplications.length, _fluxCount: demoFlux.length }] })
       }
     }
   },
 
   // ---- setSession ----
   setSession: async (session) => {
+    if (!session) {
+      set({ session: null, applications: [], flux: [], positions: {}, deploiements: [], isDirty: false, history: [], historyIndex: -1 })
+      return
+    }
     set({ session })
+    // If session carries preloaded apps (from duplicate with preload), inject them
+    if (session._preloadedApps) {
+      const { applications } = get()
+      set({ applications: [...applications, ...session._preloadedApps] })
+    }
     await get().loadSessionData(session.id)
   },
 
@@ -215,6 +224,40 @@ const useSessionStore = create((set, get) => ({
 
   // ---- setDemoMode ----
   setDemoMode: (bool) => set({ demoMode: bool }),
+
+  // ---- updateSessionStatus ----
+  updateSessionStatus: async (newStatus) => {
+    const { session, demoMode } = get()
+    if (!session) return
+    const updated = { ...session, statut: newStatus }
+    set({ session: updated })
+    if (!demoMode) {
+      try {
+        await api.updateSession(session.id, { statut: newStatus })
+      } catch (err) {
+        console.warn('Could not update session status', err)
+      }
+    }
+    // Update in sessions list
+    set((state) => ({
+      sessions: state.sessions.map((s) => s.id === session.id ? { ...s, statut: newStatus } : s),
+    }))
+  },
+
+  // ---- refreshSessions ----
+  refreshSessions: async () => {
+    const { demoMode, applications, flux } = get()
+    if (demoMode) {
+      set({ sessions: [{ ...demoSession, _appCount: demoApplications.length, _fluxCount: demoFlux.length }] })
+    } else {
+      try {
+        const sessions = await api.getSessions()
+        set({ sessions })
+      } catch {
+        // keep existing
+      }
+    }
+  },
 }))
 
 export default useSessionStore
