@@ -25,23 +25,38 @@ echo "==> Connecting to NocoDB at ${NOCODB_URL}..."
 # Retrieve first base if BASE_ID not set
 if [ -z "$BASE_ID" ]; then
   echo "==> Fetching available bases..."
-  BASES=$(nc_curl "${NOCODB_URL}/api/v1/db/meta/projects/")
-  BASE_ID=$(echo "$BASES" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+  BASES=$(nc_curl --max-time 10 "${NOCODB_URL}/api/v1/db/meta/projects/")
+  if [ -z "$BASES" ]; then
+    echo "Error: No response from NocoDB. Check NOCODB_URL and that the server is running."
+    exit 1
+  fi
+  # Support both compact JSON ("id":"...") and spaced JSON ("id": "...")
+  BASE_ID=$(echo "$BASES" | grep -o '"id": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"' || true)
   if [ -z "$BASE_ID" ]; then
-    echo "Error: Could not determine BASE_ID. Set NOCODB_BASE_ID env var."
+    echo "Error: Could not determine BASE_ID from response: ${BASES}"
+    echo "       Set NOCODB_BASE_ID env var to bypass auto-detection."
     exit 1
   fi
   echo "    Using base: ${BASE_ID}"
+  echo "    Tip: set NOCODB_BASE_ID=${BASE_ID} to target a specific base next time."
 fi
 
 API_BASE="${NOCODB_URL}/api/v1/db/meta/projects/${BASE_ID}"
 
-# Create a table
+# Create a table — echo to stderr so it doesn't pollute the captured return value
 create_table() {
   local TABLE_NAME="$1"
   local FIELDS_JSON="$2"
-  echo "==> Creating table: ${TABLE_NAME}"
-  nc_curl -X POST "${API_BASE}/tables" -d "{\"title\": \"${TABLE_NAME}\", \"columns\": ${FIELDS_JSON}}" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4
+  echo "==> Creating table: ${TABLE_NAME}" >&2
+  local RESP
+  RESP=$(nc_curl -X POST "${API_BASE}/tables" -d "{\"title\": \"${TABLE_NAME}\", \"columns\": ${FIELDS_JSON}}")
+  local TID
+  TID=$(echo "$RESP" | grep -o '"id": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"' || true)
+  if [ -z "$TID" ]; then
+    echo "Error creating table '${TABLE_NAME}'. API response: ${RESP}" >&2
+    exit 1
+  fi
+  echo "$TID"
 }
 
 # ---- Sessions ----
@@ -116,7 +131,7 @@ echo "==> Seeding demo data..."
 DATA_API="${NOCODB_URL}/api/v1/db/data/noco/${BASE_ID}"
 
 # Seed session
-nc_curl -X POST "${DATA_API}/Sessions" -d '{
+nc_curl -X POST "${DATA_API}/${SESSIONS_TABLE_ID}" -d '{
   "nom": "Atelier Démo — Mai 2024",
   "date": "2024-05-15",
   "perimetre": "multi-sites",
@@ -125,8 +140,8 @@ nc_curl -X POST "${DATA_API}/Sessions" -d '{
 echo "    Seeded demo session."
 
 # Seed etablissements
-nc_curl -X POST "${DATA_API}/Etablissements" -d '{"nom": "CHU Central", "couleur": "#3b82f6"}' > /dev/null
-nc_curl -X POST "${DATA_API}/Etablissements" -d '{"nom": "Clinique Sud", "couleur": "#22c55e"}' > /dev/null
+nc_curl -X POST "${DATA_API}/${ETAB_TABLE_ID}" -d '{"nom": "CHU Central", "couleur": "#3b82f6"}' > /dev/null
+nc_curl -X POST "${DATA_API}/${ETAB_TABLE_ID}" -d '{"nom": "Clinique Sud", "couleur": "#22c55e"}' > /dev/null
 echo "    Seeded 2 etablissements."
 
 # Seed applications
@@ -139,7 +154,7 @@ for APP in \
   '{"nom":"DPI Web","type":"DPI","editeur":"McKesson","criticite":"haute","statut":"production","couleur":"#10b981"}' \
   '{"nom":"BI Tableau","type":"BI","editeur":"Salesforce","criticite":"basse","statut":"production","couleur":"#6366f1"}' \
   '{"nom":"Orbis","type":"SIH","editeur":"Dedalus","criticite":"haute","statut":"production","couleur":"#f97316"}'; do
-  nc_curl -X POST "${DATA_API}/Applications" -d "$APP" > /dev/null
+  nc_curl -X POST "${DATA_API}/${APPS_TABLE_ID}" -d "$APP" > /dev/null
 done
 echo "    Seeded 8 applications."
 
