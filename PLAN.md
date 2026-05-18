@@ -158,41 +158,46 @@
 
 ---
 
-## Phase 4 — Panneau de Saisie Rapide (Semaine 6)
+## Phase 4 — Panneau de Saisie Rapide (Semaine 6) ✅
 
 ### 4.1 — Onglet Application (`QuickAddApp.jsx`)
 
-- [ ] Formulaire minimaliste :
-  - Nom avec autocomplétion sur les apps existantes
-  - Type (boutons-pills : ERP, CRM, Métier, Messagerie, Annuaire, Autre)
-  - Criticité (3 boutons visuels : Haute 🔴, Moyenne 🟠, Basse ⚪)
-  - Périmètre (Global / Multi-sites / Local — uniquement en multi-sites)
-  - Description (textarea optionnel, replié par défaut)
-- [ ] Raccourci Entrée = ajouter
-- [ ] Après ajout : formulaire vidé, focus remis sur le champ Nom
-- [ ] Objectif : saisie complète en < 5 secondes
-- [ ] Mode édition : même formulaire pré-rempli sur double-clic d'un nœud existant
+- [x] Nom avec **autocomplétion** : suggestions filtrées dès 2 caractères, clic remplit les champs compatibles
+- [x] Type en **boutons-pills** : ERP, DPI, SIH, Imagerie, Messagerie, Annuaire, BI, CRM, Métier, Autre
+- [x] Criticité en **3 boutons visuels** : Haute (rouge), Moyenne (orange), Basse (gris) avec dot + bordure colorée
+- [x] Périmètre (Global / Multi-sites / Local) affiché uniquement en session multi-sites
+- [x] Description repliée par défaut (toggle indépendant)
+- [x] Champs supplémentaires (éditeur, version, statut, couleur, responsable) repliés derrière un toggle
+- [x] Touche Entrée = ajouter
+- [x] Après ajout : formulaire vidé, focus remis sur le champ Nom
+- [x] Objectif ≤ 5 secondes : nom + type + criticité → Entrée
+- [x] **Mode édition** : pré-rempli depuis `editingApp` (double-clic nœud), bouton Enregistrer/Annuler
+- [x] Guard `readOnly`
 
 ### 4.2 — Onglet Flux (`QuickAddFlux.jsx`)
 
-- [ ] Source : dropdown des apps de la session OU clic sur un nœud du graphe
-- [ ] Cible : idem
-- [ ] Type (boutons-pills : API, Fichier, BDD, EDI, Manuel, Autre)
-- [ ] Description courte (optionnel)
-- [ ] Fréquence (boutons : Temps réel, Quotidien, Hebdomadaire, Ponctuel)
-- [ ] Après ajout : source et cible vidés, type conservé
+- [x] Source/Cible : dropdowns des apps de la session (cible exclut la source)
+- [x] Type en **boutons-pills colorés** : API (bleu), Fichier (jaune), BDD (violet), EDI (vert), Manuel (gris)
+- [x] Fréquence en **boutons** : Temps réel, Quotidien, Hebdomadaire, Ponctuel
+- [x] Libellé court + description (optionnel) + case flux critique
+- [x] Après ajout : source et cible vidés, **type et fréquence conservés**
+- [x] Guard : message si moins de 2 applications dans la session
+- [x] Guard `readOnly`
 
 ### 4.3 — Onglet Établissement (`QuickAddEtablissement.jsx`)
 
-- [ ] Affiché uniquement en mode multi-sites
-- [ ] Ajouter un établissement : nom + couleur (palette prédéfinie)
-- [ ] Affecter une app à un établissement : dropdown app + dropdown établissement + "Déployer"
-- [ ] Liste des déploiements existants avec suppression
+- [x] Affiché uniquement en mode multi-sites (message sinon)
+- [x] Ajouter un établissement : nom + couleur (color picker)
+- [x] Affecter une app à un établissement : dropdown app + dropdown établissement + environnement
+- [x] Liste des déploiements existants avec suppression (× par ligne)
+- [x] Guard `readOnly`
 
 ### 4.4 — Navigation entre onglets
 
-- [ ] Raccourcis clavier : F1 = App, F2 = Flux, F3 = Établissement
-- [ ] L'onglet actif est mémorisé
+- [x] Raccourcis clavier F1 / F2 / F3 (câblés dans SessionManager)
+- [x] Onglet actif mémorisé dans l'état de SessionManager
+- [x] Double-clic nœud → bascule sur onglet App en mode édition
+- [x] Double-clic canvas vide → bascule sur onglet App en mode création
 
 **Livrable** : Saisie rapide complète, optimisée clavier, réactive instantanément dans le graphe.
 
@@ -327,19 +332,18 @@
 | 1 | Client API & Mode Démo | S2 | ✅ |
 | 2 | Gestion des Sessions | S3 | ✅ |
 | 3 | Vue Graphe Temps Réel | S4–S5 | ✅ |
-| 4 | Panneau de Saisie Rapide | S6 | ⬜ |
+| 4 | Panneau de Saisie Rapide | S6 | ✅ |
 | 5 | KPIs, Présentation & Export | S7 | ⬜ |
 | 6 | Fusion & Consolidation | S8 | ⬜ |
 | 7 | Tests & Qualité | S9 | ⬜ |
 | 8 | Production & Documentation | S10 | ⬜ |
 
-**Durée totale estimée : 10 semaines — 5 semaines réalisées (Phases 0–3)**
+**Durée totale estimée : 10 semaines — 6 semaines réalisées (Phases 0–4) · MVP disponible**
 
 ---
 
 ## Priorités si temps contraint
 
-1. **Phases 0 + 1 + 3 + 4** ✅ (0, 1 faits) → MVP atelier : saisir des apps et flux en live.
-2. **Phase 2** ✅ → Sessions et autosave. L'outil est fiable pour un usage récurrent.
-3. **Phase 5** → KPIs et export. L'outil produit des livrables post-séance.
-4. **Phases 6–8** → Consolidation, tests, prod. L'outil est industrialisé.
+1. **Phases 0 + 1 + 2 + 3 + 4** ✅ → **MVP complet** : sessions, graphe interactif, saisie rapide, sauvegarde, undo/redo, présentation, export.
+2. **Phase 5** → KPIs animés et export PNG. L'outil produit des livrables post-séance complets.
+3. **Phases 6–8** → Consolidation multi-sessions, tests, prod. L'outil est industrialisé.
