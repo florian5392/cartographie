@@ -77,6 +77,12 @@ export default function SessionManager() {
     setActiveTab('app')
   }, [isReadOnly])
 
+  const handleOpenAddApp = useCallback(() => {
+    if (isReadOnly) return
+    setActiveTab('app')
+    setEditingApp(null)
+  }, [isReadOnly])
+
   const handleToggleStatus = async () => {
     const next = isReadOnly ? 'en cours' : 'terminée'
     await updateSessionStatus(next)
@@ -199,6 +205,7 @@ export default function SessionManager() {
           <GraphCanvas
             onNodeEdit={handleNodeEdit}
             onConnect={handleConnect}
+            onOpenAddApp={handleOpenAddApp}
             showMiniMap={true}
             flowRef={flowRef}
             readOnly={isReadOnly}
