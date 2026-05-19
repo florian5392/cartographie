@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import useSessionStore from '../../stores/sessionStore'
-import * as api from '../../api/nocodb'
+import * as api from '../../api/api'
 
 export default function QuickAddEtablissement({ readOnly }) {
   const { session, etablissements, applications, deploiements, addEtablissement, addDeploiement, removeDeploiement, demoMode } =

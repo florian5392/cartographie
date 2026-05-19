@@ -24,8 +24,20 @@ const STATUT_BADGE = {
   pilote:     'bg-blue-900 text-blue-300',
 }
 
+const HEBERGEMENT_BADGE = {
+  'On-premise':   'bg-gray-700 text-gray-300',
+  'Cloud public': 'bg-sky-900 text-sky-300',
+  'SaaS':         'bg-violet-900 text-violet-300',
+  'Hybride':      'bg-orange-900 text-orange-300',
+}
+
+const PORTEE_BADGE = {
+  'Etablissement': 'bg-emerald-900 text-emerald-300',
+  'Groupe':        'bg-indigo-900 text-indigo-300',
+}
+
 export default function AppNode({ data, selected }) {
-  const { app, onEdit, etablissements = [], isMultiSite = false } = data
+  const { app, onEdit, onDelete, etablissements = [], isMultiSite = false } = data
 
   const borderCls = CRITICITE_BORDER[app.criticite] || 'border-l-gray-500'
   const dotCls    = CRITICITE_DOT[app.criticite]    || 'bg-gray-500'
@@ -34,7 +46,7 @@ export default function AppNode({ data, selected }) {
   return (
     <div
       className={[
-        'node-enter',
+        'node-enter group',
         'relative bg-gray-800 rounded-lg shadow-xl',
         'border border-gray-700 border-l-4', borderCls,
         'min-w-[170px] max-w-[230px] cursor-pointer',
@@ -43,6 +55,15 @@ export default function AppNode({ data, selected }) {
       ].join(' ')}
       onDoubleClick={() => onEdit && onEdit(app)}
     >
+      {onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(app) }}
+          className="absolute top-1 right-1 w-5 h-5 rounded text-gray-600 hover:text-red-400 hover:bg-gray-900 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm leading-none z-10"
+          title="Supprimer l'application"
+        >
+          ×
+        </button>
+      )}
       <Handle
         type="target"
         position={Position.Top}
@@ -61,6 +82,22 @@ export default function AppNode({ data, selected }) {
         {/* Éditeur */}
         {app.editeur && (
           <div className="text-gray-500 text-xs truncate mb-1.5">{app.editeur}</div>
+        )}
+
+        {/* Hébergement + Portée */}
+        {(app.hebergement || app.portee) && (
+          <div className="flex gap-1 flex-wrap mb-1.5">
+            {app.hebergement && HEBERGEMENT_BADGE[app.hebergement] && (
+              <span className={`text-xs px-1.5 py-0.5 rounded ${HEBERGEMENT_BADGE[app.hebergement]}`}>
+                {app.hebergement}
+              </span>
+            )}
+            {app.portee && PORTEE_BADGE[app.portee] && (
+              <span className={`text-xs px-1.5 py-0.5 rounded ${PORTEE_BADGE[app.portee]}`}>
+                {app.portee}
+              </span>
+            )}
+          </div>
         )}
 
         {/* Bottom row: criticité + statut */}

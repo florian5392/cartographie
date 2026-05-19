@@ -9,7 +9,7 @@ import QuickAddEtablissement from '../panel/QuickAddEtablissement'
 import KpiBar from '../KpiBar'
 import ExportPanel from './ExportPanel'
 import PresentationMode from '../PresentationMode'
-import * as api from '../../api/nocodb'
+import * as api from '../../api/api'
 
 const TABS = [
   { id: 'app', label: 'Applications', key: 'F1' },

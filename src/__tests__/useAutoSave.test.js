@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
 // Mock API before any imports
-vi.mock('../api/nocodb', () => ({
-  isNocoDBReachable: vi.fn().mockResolvedValue(true),
+vi.mock('../api/api', () => ({
+  isAPIReachable: vi.fn().mockResolvedValue(true),
   getSessions: vi.fn().mockResolvedValue([]),
   getApplications: vi.fn().mockResolvedValue([]),
   getFlux: vi.fn().mockResolvedValue([]),
@@ -21,7 +21,7 @@ vi.mock('../api/nocodb', () => ({
 }))
 
 const { useAutoSave } = await import('../hooks/useAutoSave')
-const api = await import('../api/nocodb')
+const api = await import('../api/api')
 const { default: useSessionStore } = await import('../stores/sessionStore')
 
 const SESSION = { id: 'sess-1', nom: 'Test', perimetre: 'mono-site' }

@@ -1,7 +1,7 @@
 # Plan de Développement — Cartographie Applicative SI v3 (Atelier)
 
 **Projet** : Outil d'atelier de cartographie applicative en temps réel
-**Stack** : React + React Flow / NocoDB + PostgreSQL / Docker / Nginx
+**Stack** : React + React Flow / PostgREST + PostgreSQL / Docker / Nginx
 **Durée estimée** : 10 semaines
 
 ---
@@ -14,21 +14,20 @@
 - [x] Initialiser le projet React (Vite + plugin-react)
 - [x] Installer les dépendances : `reactflow`, `axios`, `tailwindcss`, `zustand`
 - [x] Configurer ESLint
-- [x] Créer `.gitignore`, `.env.example` documenté (`VITE_NOCODB_URL`, `VITE_NOCODB_TOKEN`, `VITE_NOCODB_BASE_ID`)
+- [x] Créer `.gitignore`, `.env.example` documenté (`POSTGRES_PASSWORD`)
 - [x] Arborescence complète créée : `src/api/`, `src/hooks/`, `src/stores/`, `src/components/graph|panel|session/`, `src/data/`
 
 ### 0.2 — Docker & infrastructure locale
 
-- [x] `docker-compose.yml` : 3 services (postgres:15-alpine, nocodb:latest, dashboard) avec healthchecks et `restart: unless-stopped`
+- [x] `docker-compose.yml` : 3 services (postgres:15-alpine, postgrest:latest, dashboard) avec healthchecks et `restart: unless-stopped`
 - [x] `Dockerfile` multi-stage : build Vite → image Nginx Alpine
 - [x] `nginx.conf` : SPA fallback (`try_files`), gzip, cache 1 an sur les assets, headers sécurité (X-Frame-Options, X-Content-Type-Options)
 - [ ] Valider `docker compose up -d` sur les 3 services *(à tester en environnement cible)*
 
-### 0.3 — Modèle de données NocoDB
+### 0.3 — Modèle de données PostgreSQL
 
 - [x] 6 tables définies : Sessions, Établissements, Applications, Déploiements, Flux, Positions
-- [x] `scripts/setup-nocodb.sh` : création des tables via API REST NocoDB + injection des données démo (idempotent, paramétrable via `NOCODB_URL` / `NOCODB_TOKEN`)
-- [ ] Générer un API Token NocoDB et documenter la procédure *(procédure dans `.env.example`)*
+- [x] `scripts/init.sql` : schéma PostgreSQL complet + rôle `web_anon` + vue `sessions_view` avec compteurs apps/flux
 
 **Livrable** : Environnement local défini, modèle 6 tables, script de seed.
 
@@ -36,16 +35,16 @@
 
 ## Phase 1 — Client API & Mode Démo (Semaine 2) ✅
 
-### 1.1 — Client API NocoDB (`src/api/nocodb.js`)
+### 1.1 — Client API PostgREST (`src/api/api.js`)
 
 - [x] CRUD Applications : `getApplications()`, `createApplication()`, `updateApplication()`, `deleteApplication()`
 - [x] CRUD Flux : `getFlux(sessionId?)`, `createFlux()`, `updateFlux()`, `deleteFlux()`
 - [x] CRUD Établissements : `getEtablissements()`, `createEtablissement()`
 - [x] CRUD Déploiements : `getDeploiements(sessionId?)`, `createDeploiement()`, `deleteDeploiement()`
 - [x] CRUD Sessions : `getSessions()`, `createSession()`, `updateSession()`
-- [x] CRUD Positions : `getPositions(sessionId)`, `savePositions(sessionId, positions)` (upsert par applicationId)
+- [x] CRUD Positions : `getPositions(sessionId)`, `savePositions(sessionId, positions)` (upsert via clé composite)
 - [x] Retry exponentiel sur erreurs réseau (3 tentatives : 1 s → 2 s → 4 s, pas de retry sur 4xx)
-- [x] `isNocoDBReachable()` : retourne `true` si le serveur répond (même 4xx), `false` si injoignable
+- [x] `isAPIReachable()` : retourne `true` si PostgREST répond, `false` si injoignable
 
 ### 1.2 — Mode démo (`src/data/demoData.js`)
 
@@ -53,7 +52,7 @@
 - [x] 8 applications (contexte SI hospitalier FR) : SAP ERP, Mediboard, PACS, Messagerie Exchange, Annuaire LDAP, DPI Web, BI Tableau, Orbis
 - [x] 10 flux typés (API, Fichier, BDD, EDI, Manuel) avec description, fréquence, flag critique
 - [x] 1 session démo multi-sites avec positions et déploiements
-- [x] Switch automatique dans `initStore()` si NocoDB injoignable
+- [x] Switch automatique dans `initStore()` si PostgREST injoignable
 - [x] Badge "DÉMO" visible dans KpiBar et SessionSelector
 
 ### 1.3 — State management local (`src/stores/sessionStore.js`)
@@ -163,7 +162,7 @@
 ### 4.1 — Onglet Application (`QuickAddApp.jsx`)
 
 - [x] Nom avec **autocomplétion** : suggestions filtrées dès 2 caractères, clic remplit les champs compatibles
-- [x] Type en **boutons-pills** : ERP, DPI, SIH, Imagerie, Messagerie, Annuaire, BI, CRM, Métier, Autre
+- [x] Type en **boutons-pills** : 4 types (DPI, Imagerie, Messagerie, Annuaire) + saisie libre pour tout autre type *(réduit depuis 10 types initiaux pour limiter les choix en atelier)*
 - [x] Criticité en **3 boutons visuels** : Haute (rouge), Moyenne (orange), Basse (gris) avec dot + bordure colorée
 - [x] Périmètre (Global / Multi-sites / Local) affiché uniquement en session multi-sites
 - [x] Description repliée par défaut (toggle indépendant)
@@ -203,57 +202,59 @@
 
 ---
 
-## Phase 5 — KPIs, Mode Présentation & Export (Semaine 7)
+## Phase 5 — KPIs, Mode Présentation & Export (Semaine 7) ✅
 
 ### 5.1 — Barre de KPIs (`KpiBar.jsx`)
 
-- [ ] 4 indicateurs en mode mono-site : Apps recensées, Flux tracés, Apps critiques, Couverture (% apps avec ≥ 1 flux)
-- [ ] 5e indicateur en mode multi-sites : Établissements couverts
-- [ ] Mise à jour instantanée à chaque ajout/suppression
-- [ ] Animation de transition sur les chiffres (count-up)
+- [x] 3 indicateurs en mode mono-site : Apps recensées, Flux tracés, Apps critiques *(KPI "Couverture" retiré — jugé peu lisible en projection)*
+- [x] 4e indicateur en mode multi-sites : Établissements couverts
+- [x] Mise à jour instantanée à chaque ajout/suppression
+- [x] Animation de transition sur les chiffres (count-up)
 
 ### 5.2 — Mode Présentation (`PresentationMode.jsx`)
 
-- [ ] Bouton "Présenter" ou raccourci F11
-- [ ] Masque le panneau de saisie → graphe en plein écran
-- [ ] KPIs toujours visibles en overlay discret en haut
-- [ ] Navigation : zoom/pan, clic sur nœud pour surbrillance
-- [ ] Bouton "Quitter" ou touche Échap pour revenir
-- [ ] Curseur laser : point coloré qui suit la souris (touche L pour changer la couleur)
+- [x] Bouton "Présenter" ou raccourci F11
+- [x] Masque le panneau de saisie → graphe en plein écran
+- [x] KPIs toujours visibles en overlay discret en haut
+- [x] Navigation : zoom/pan, clic sur nœud pour surbrillance
+- [x] Bouton "Quitter" ou touche Échap pour revenir
+- [x] Curseur laser : point coloré qui suit la souris (touche L pour changer la couleur)
 
 ### 5.3 — Export (`ExportPanel.jsx`)
 
-- [ ] Export image PNG/SVG du graphe (html-to-image)
-- [ ] Export rapport Markdown : en-tête session, tableau apps, tableau flux, KPIs
-- [ ] Export JSON brut (applications + flux + positions)
-- [ ] Export impression (window.print())
+- [x] Export image PNG/SVG du graphe (html-to-image)
+- [x] Export rapport Markdown : en-tête session, tableau apps, tableau flux, KPIs
+- [x] Export JSON brut (applications + flux + positions)
+- [x] Export impression (window.print())
 
 **Livrable** : KPIs en direct, mode plein écran pour la revue collective, export post-séance.
 
 ---
 
-## Phase 6 — Fusion & Consolidation Multi-Sessions (Semaine 8)
+## Phase 6 — Fusion & Consolidation Multi-Sessions (Semaine 8) ✅
 
-### 6.1 — Vue consolidée
+### 6.1 — Vue consolidée (`src/components/consolidated/ConsolidatedView.jsx`)
 
-- [ ] Écran "Cartographie globale" accessible depuis l'accueil
-- [ ] Agrège toutes les sessions terminées en une seule vue
-- [ ] Dédoublonnage des applications (même id = même nœud)
-- [ ] Fusion des flux issus de différentes sessions
-- [ ] Layout multi-sites complet
+- [x] Écran "Vue globale" accessible depuis l'accueil (bouton dans SessionSelector)
+- [x] Graphe fusionné de toutes les sessions : nœuds dédoublonnés par application, arêtes de flux agrégées
+- [x] Filtre par session via pills cliquables (afficher/masquer les éléments d'une session)
+- [x] Highlighting au clic sur un nœud (même comportement que la vue session)
+- [x] Minimap activée
 
-### 6.2 — Comparaison de sessions
+### 6.2 — Comparaison de sessions (`src/components/consolidated/CompareView.jsx`)
 
-- [ ] Sélectionner 2 sessions → afficher les différences (apps et flux ajoutés/supprimés)
-- [ ] Utile pour mesurer la progression entre deux ateliers
+- [x] Sélection de 2 sessions via checkboxes dans SessionSelector + bouton "Comparer les 2 sessions"
+- [x] Diff structuré : apps absentes / apps nouvelles, flux supprimés / flux ajoutés, flux communs
+- [x] Utile pour mesurer la progression entre deux ateliers
 
-### 6.3 — Vue tableau (référentiel)
+### 6.3 — Vue tableau — Référentiel (`src/components/consolidated/ReferentielTable.jsx`)
 
-- [ ] Tableau consolidé : Nom, Type, Périmètre, Criticité + colonnes dynamiques par établissement (✓/✗)
-- [ ] Tri, recherche, filtres
-- [ ] Export CSV
+- [x] Tableau triable et filtrable : recherche texte, filtre par type, filtre par criticité
+- [x] Colonnes dynamiques par établissement (✓ / —)
+- [x] Export CSV
+- [x] Accessible depuis le bouton "Référentiel" dans SessionSelector
 
-**Livrable** : Vision globale consolidée, comparaison inter-sessions.
+**Livrable** : Vision globale consolidée, référentiel applicatif filtrable, comparaison inter-sessions.
 
 ---
 
@@ -261,7 +262,7 @@
 
 ### 7.1 — Tests unitaires
 
-- [ ] Client API : mock des appels NocoDB (CRUD 6 tables)
+- [ ] Client API : mock des appels PostgREST (CRUD 6 tables)
 - [ ] Store session : ajout/suppression/modification d'apps et flux
 - [ ] Hook undo/redo : enchaînement d'actions et annulations
 - [ ] Hook autosave : déclenchement, diff de sync, file d'attente offline
@@ -271,7 +272,7 @@
 
 - [ ] Scénario atelier complet : créer session → ajouter 5 apps → tracer 4 flux → déplacer nœuds → sauvegarder → recharger → vérifier données + positions
 - [ ] Undo/redo sur 10 actions consécutives
-- [ ] Mode démo : NocoDB coupé → fallback fonctionnel
+- [ ] Mode démo : PostgREST coupé → fallback fonctionnel
 - [ ] Données volumineuses : 30 apps, 50 flux (fluidité du graphe)
 
 ### 7.3 — Qualité & accessibilité
@@ -290,7 +291,7 @@
 ### 8.1 — Sécurisation
 
 - [ ] HTTPS via reverse proxy (Traefik ou Nginx + Let's Encrypt)
-- [ ] NocoDB non exposé publiquement (réseau Docker interne)
+- [ ] PostgREST non exposé publiquement (réseau Docker interne)
 - [ ] Variables d'environnement production séparées
 - [ ] Headers sécurité Nginx (CSP, HSTS, X-Frame-Options) *(base déjà dans nginx.conf)*
 
@@ -317,10 +318,32 @@
 
 - [ ] README.md complet : prérequis, variables d'environnement, démarrage rapide, architecture
 - [ ] Guide animateur : préparer et mener un atelier de cartographie
-- [ ] Guide admin : gestion NocoDB, backup, mise à jour
+- [ ] Guide admin : gestion PostgreSQL/PostgREST, backup, mise à jour
 - [ ] FAQ : ajout d'app, gestion des sessions, exports
 
 **Livrable** : Application en production, documentée, prête pour les premiers ateliers.
+
+---
+
+## Fonctionnalités ajoutées hors-plan
+
+Ces évolutions ont été implémentées au fil des phases sans être prévues dans le plan initial.
+
+### Champs supplémentaires sur les applications
+
+- **Hébergement** : On-premise, Cloud public, SaaS, Hybride (champ dans `QuickAddApp`, colonne `hebergement` en base)
+- **Portée** : Etablissement / Groupe (champ dans `QuickAddApp`, colonne `portee` en base)
+
+### Actions sur le graphe
+
+- **Suppression d'application** : bouton × au survol d'un nœud `AppNode` (avec confirmation, annulable via Ctrl+Z)
+- **Modification et suppression de flux** : liste des flux existants dans l'onglet Flux (`QuickAddFlux`) avec boutons éditer/supprimer par ligne
+
+### Ajustements UX
+
+- **Types applicatifs** réduits à 4 pills (DPI, Imagerie, Messagerie, Annuaire) + saisie libre, pour limiter le choix en atelier
+- **KPI "Couverture"** retiré de `KpiBar` (peu lisible en projection)
+- **Port 5432 exposé** dans `docker-compose.yml` pour accès depuis DBeaver ou tout client SQL
 
 ---
 
@@ -333,17 +356,17 @@
 | 2 | Gestion des Sessions | S3 | ✅ |
 | 3 | Vue Graphe Temps Réel | S4–S5 | ✅ |
 | 4 | Panneau de Saisie Rapide | S6 | ✅ |
-| 5 | KPIs, Présentation & Export | S7 | ⬜ |
-| 6 | Fusion & Consolidation | S8 | ⬜ |
+| 5 | KPIs, Présentation & Export | S7 | ✅ |
+| 6 | Fusion & Consolidation | S8 | ✅ |
 | 7 | Tests & Qualité | S9 | ⬜ |
 | 8 | Production & Documentation | S10 | ⬜ |
 
-**Durée totale estimée : 10 semaines — 6 semaines réalisées (Phases 0–4) · MVP disponible**
+**Durée totale estimée : 10 semaines — 8 semaines réalisées (Phases 0–6) · MVP complet disponible**
 
 ---
 
 ## Priorités si temps contraint
 
-1. **Phases 0 + 1 + 2 + 3 + 4** ✅ → **MVP complet** : sessions, graphe interactif, saisie rapide, sauvegarde, undo/redo, présentation, export.
-2. **Phase 5** → KPIs animés et export PNG. L'outil produit des livrables post-séance complets.
-3. **Phases 6–8** → Consolidation multi-sessions, tests, prod. L'outil est industrialisé.
+1. **Phases 0–6** ✅ → **MVP complet** : sessions, graphe interactif, saisie rapide, sauvegarde, undo/redo, KPIs animés, présentation plein écran, export PNG/SVG/Markdown/JSON, vue consolidée, référentiel et comparaison de sessions.
+2. **Phase 7** → Tests, qualité, audit performance.
+3. **Phase 8** → Déploiement production, documentation complète. L'outil est industrialisé.

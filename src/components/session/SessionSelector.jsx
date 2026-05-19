@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import useSessionStore from '../../stores/sessionStore'
-import * as api from '../../api/nocodb'
+import * as api from '../../api/api'
 
 const PERIMETRES = [
   { value: 'mono-site', label: 'Mono-site' },
   { value: 'multi-sites', label: 'Multi-sites' },
 ]
 
-export default function SessionSelector() {
+export default function SessionSelector({ onViewChange }) {
   const { sessions, etablissements, setSession, demoMode, applications } = useSessionStore()
   const [showForm, setShowForm] = useState(false)
+  const [compareIds, setCompareIds] = useState(new Set())
   const [form, setForm] = useState({
     nom: '',
     date: new Date().toISOString().slice(0, 10),
@@ -71,6 +72,22 @@ export default function SessionSelector() {
     setLoading(false)
   }
 
+  const toggleCompare = (id) => {
+    setCompareIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) { next.delete(id); return next }
+      if (next.size < 2) { next.add(id); return next }
+      return prev
+    })
+  }
+
+  const handleCompare = () => {
+    const [id1, id2] = [...compareIds]
+    const s1 = sessions.find(s => s.id === id1)
+    const s2 = sessions.find(s => s.id === id2)
+    if (s1 && s2) onViewChange?.({ type: 'compare', sessions: [s1, s2] })
+  }
+
   const handleDuplicate = async (session) => {
     setLoading(true)
     const dup = {
@@ -106,23 +123,66 @@ export default function SessionSelector() {
           <p className="text-gray-400">Outil d&apos;atelier de cartographie applicative</p>
           {demoMode && (
             <div className="mt-3 inline-block bg-amber-500 text-black text-xs font-bold px-3 py-1 rounded-full">
-              Mode démo — NocoDB non disponible
+              Mode démo — PostgREST non disponible
             </div>
           )}
+          {/* Vue globale / Référentiel */}
+          <div className="flex justify-center gap-2 mt-4">
+            <button
+              onClick={() => onViewChange?.('consolidated')}
+              className="text-xs bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 px-3 py-1.5 rounded transition-colors"
+            >
+              Vue globale
+            </button>
+            <button
+              onClick={() => onViewChange?.('referentiel')}
+              className="text-xs bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 px-3 py-1.5 rounded transition-colors"
+            >
+              Référentiel
+            </button>
+          </div>
         </div>
 
         {/* Sessions list */}
         {sessions.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Sessions existantes
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                Sessions existantes
+              </h2>
+              {compareIds.size === 2 && (
+                <button
+                  onClick={handleCompare}
+                  className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded transition-colors font-medium"
+                >
+                  Comparer les 2 sessions
+                </button>
+              )}
+              {compareIds.size === 1 && (
+                <span className="text-xs text-gray-500">Sélectionnez une 2e session pour comparer</span>
+              )}
+            </div>
             <div className="space-y-2">
               {sessions.map((s) => (
                 <div
                   key={s.id}
-                  className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex items-center justify-between gap-4"
+                  className={`bg-gray-800 border rounded-lg p-4 flex items-center justify-between gap-4 transition-colors ${
+                    compareIds.has(s.id) ? 'border-indigo-600' : 'border-gray-700'
+                  }`}
                 >
+                  {/* Checkbox comparaison */}
+                  <button
+                    onClick={() => toggleCompare(s.id)}
+                    title="Sélectionner pour comparaison"
+                    className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                      compareIds.has(s.id)
+                        ? 'bg-indigo-600 border-indigo-500 text-white'
+                        : 'border-gray-600 hover:border-indigo-500'
+                    }`}
+                  >
+                    {compareIds.has(s.id) && <span className="text-[10px] font-bold leading-none">✓</span>}
+                  </button>
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-white truncate">{s.nom}</span>

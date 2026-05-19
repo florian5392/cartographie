@@ -8,8 +8,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { vi } from 'vitest'
 
-vi.mock('../api/nocodb', () => ({
-  isNocoDBReachable: vi.fn().mockResolvedValue(false),
+vi.mock('../api/api', () => ({
+  isAPIReachable: vi.fn().mockResolvedValue(false),
   getSessions: vi.fn().mockResolvedValue([]),
   getApplications: vi.fn().mockResolvedValue([]),
   getFlux: vi.fn().mockResolvedValue([]),

@@ -16,7 +16,7 @@ vi.mock('axios', () => ({
   },
 }))
 
-const api = await import('../api/nocodb')
+const api = await import('../api/api')
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -25,18 +25,22 @@ beforeEach(() => {
 // ─── getApplications ──────────────────────────────────────────────────────────
 
 describe('getApplications', () => {
-  it('retourne le tableau list de la réponse', async () => {
-    const apps = [{ Id: 1, Nom: 'SAP' }, { Id: 2, Nom: 'Mediboard' }]
-    mockInstance.get.mockResolvedValue({ data: { list: apps } })
+  it('retourne un tableau mappé depuis la réponse', async () => {
+    const rows = [
+      { id: '1', nom: 'SAP', type: null, editeur: null, version: null, criticite: 'basse', perimetre: null, statut: 'production', description: null, couleur: null, responsable: null },
+      { id: '2', nom: 'Mediboard', type: null, editeur: null, version: null, criticite: 'haute', perimetre: null, statut: 'production', description: null, couleur: null, responsable: null },
+    ]
+    mockInstance.get.mockResolvedValue({ data: rows })
 
     const result = await api.getApplications()
 
-    expect(result).toEqual(apps)
-    expect(mockInstance.get).toHaveBeenCalledWith('/Applications?limit=200')
+    expect(result).toHaveLength(2)
+    expect(result[0]).toMatchObject({ id: '1', nom: 'SAP' })
+    expect(mockInstance.get).toHaveBeenCalledWith('/applications?limit=500')
   })
 
-  it('retourne un tableau vide si list est absent', async () => {
-    mockInstance.get.mockResolvedValue({ data: {} })
+  it('retourne un tableau vide si la réponse est vide', async () => {
+    mockInstance.get.mockResolvedValue({ data: [] })
 
     const result = await api.getApplications()
 
@@ -47,61 +51,77 @@ describe('getApplications', () => {
 // ─── createApplication ────────────────────────────────────────────────────────
 
 describe('createApplication', () => {
-  it('envoie les données en POST et retourne la réponse', async () => {
-    const payload = { nom: 'SAP ERP', criticite: 'haute' }
-    const created = { Id: 42, ...payload }
-    mockInstance.post.mockResolvedValue({ data: created })
+  it('envoie les données en POST et retourne la réponse mappée', async () => {
+    const payload = { id: '42', nom: 'SAP ERP', criticite: 'haute', type: null, editeur: null, version: null, perimetre: null, statut: 'production', description: null, couleur: null, responsable: null }
+    mockInstance.post.mockResolvedValue({ data: [payload] })
 
     const result = await api.createApplication(payload)
 
-    expect(mockInstance.post).toHaveBeenCalledWith('/Applications', payload)
-    expect(result).toEqual(created)
+    expect(mockInstance.post).toHaveBeenCalledWith(
+      '/applications',
+      expect.objectContaining({ nom: 'SAP ERP' }),
+      expect.objectContaining({ headers: expect.objectContaining({ Prefer: 'return=representation' }) }),
+    )
+    expect(result).toMatchObject({ id: '42', nom: 'SAP ERP' })
   })
 })
 
 // ─── updateApplication ────────────────────────────────────────────────────────
 
 describe('updateApplication', () => {
-  it('envoie un PATCH avec l\'id et les données', async () => {
-    mockInstance.patch.mockResolvedValue({ data: { Id: 1, nom: 'SAP S/4HANA' } })
+  it('envoie un PATCH avec le filtre id et les données', async () => {
+    mockInstance.patch.mockResolvedValue({ data: {} })
 
-    await api.updateApplication('app-1', { nom: 'SAP S/4HANA' })
+    await api.updateApplication('app-1', { id: 'app-1', nom: 'SAP S/4HANA', type: null, editeur: null, version: null, criticite: 'haute', perimetre: null, statut: 'production', description: null, couleur: null, responsable: null })
 
-    expect(mockInstance.patch).toHaveBeenCalledWith('/Applications/app-1', { nom: 'SAP S/4HANA' })
+    expect(mockInstance.patch).toHaveBeenCalledWith(
+      '/applications?id=eq.app-1',
+      expect.objectContaining({ nom: 'SAP S/4HANA' }),
+    )
   })
 })
 
 // ─── deleteApplication ────────────────────────────────────────────────────────
 
 describe('deleteApplication', () => {
-  it('appelle DELETE avec le bon identifiant', async () => {
+  it('appelle DELETE avec le bon filtre', async () => {
     mockInstance.delete.mockResolvedValue({ data: {} })
 
     await api.deleteApplication('app-123')
 
-    expect(mockInstance.delete).toHaveBeenCalledWith('/Applications/app-123')
+    expect(mockInstance.delete).toHaveBeenCalledWith('/applications?id=eq.app-123')
   })
 })
 
 // ─── getFlux ──────────────────────────────────────────────────────────────────
 
 describe('getFlux', () => {
-  it('filtre par sessionId si fourni', async () => {
-    mockInstance.get.mockResolvedValue({ data: { list: [] } })
+  it('filtre par session_id si sessionId est fourni', async () => {
+    mockInstance.get.mockResolvedValue({ data: [] })
 
     await api.getFlux('session-1')
 
     const url = mockInstance.get.mock.calls[0][0]
-    expect(url).toContain('session-1')
+    expect(url).toContain('session_id=eq.session-1')
   })
 
   it('ne filtre pas si sessionId est absent', async () => {
-    mockInstance.get.mockResolvedValue({ data: { list: [] } })
+    mockInstance.get.mockResolvedValue({ data: [] })
 
     await api.getFlux()
 
     const url = mockInstance.get.mock.calls[0][0]
-    expect(url).not.toContain('where')
+    expect(url).not.toContain('session_id')
+  })
+
+  it('mappe session_id → sessionId dans les résultats', async () => {
+    mockInstance.get.mockResolvedValue({
+      data: [{ id: 'f1', session_id: 's1', source_id: 'a1', cible_id: 'a2', type: 'API', label: null, description: null, frequence: null, critique: false }],
+    })
+
+    const result = await api.getFlux('s1')
+
+    expect(result[0]).toMatchObject({ id: 'f1', sessionId: 's1', sourceId: 'a1', cibleId: 'a2' })
   })
 })
 
@@ -110,10 +130,11 @@ describe('getFlux', () => {
 describe('retry sur erreur réseau', () => {
   it('réessaie jusqu\'à 3 fois sur erreur réseau et réussit', async () => {
     const networkError = new Error('Network Error')
+    const row = { id: '1', nom: 'SAP', type: null, editeur: null, version: null, criticite: 'basse', perimetre: null, statut: 'production', description: null, couleur: null, responsable: null }
     mockInstance.get
       .mockRejectedValueOnce(networkError)
       .mockRejectedValueOnce(networkError)
-      .mockResolvedValueOnce({ data: { list: [{ Id: 1 }] } })
+      .mockResolvedValueOnce({ data: [row] })
 
     const result = await api.getApplications()
 
@@ -142,34 +163,25 @@ describe('retry sur erreur réseau', () => {
 // ─── savePositions ────────────────────────────────────────────────────────────
 
 describe('savePositions', () => {
-  it('crée une nouvelle position si elle n\'existe pas encore', async () => {
-    mockInstance.get.mockResolvedValue({ data: { list: [] } })
+  it('envoie un POST upsert avec l\'en-tête merge-duplicates', async () => {
     mockInstance.post.mockResolvedValue({ data: {} })
 
     await api.savePositions('session-1', { 'app-1': { x: 100, y: 200 } })
 
-    expect(mockInstance.post).toHaveBeenCalledWith('/Positions', {
-      sessionId: 'session-1',
-      applicationId: 'app-1',
-      x: 100,
-      y: 200,
-    })
+    expect(mockInstance.post).toHaveBeenCalledWith(
+      '/positions',
+      [{ session_id: 'session-1', application_id: 'app-1', x: 100, y: 200 }],
+      expect.objectContaining({ headers: expect.objectContaining({ Prefer: 'resolution=merge-duplicates' }) }),
+    )
   })
 
-  it('met à jour une position existante via PATCH', async () => {
-    mockInstance.get.mockResolvedValue({
-      data: { list: [{ Id: 99, applicationId: 'app-1', x: 0, y: 0 }] },
-    })
-    mockInstance.patch.mockResolvedValue({ data: {} })
+  it('n\'appelle pas l\'API si positions est vide', async () => {
+    await api.savePositions('session-1', {})
 
-    await api.savePositions('session-1', { 'app-1': { x: 350, y: 450 } })
-
-    expect(mockInstance.patch).toHaveBeenCalledWith('/Positions/99', { x: 350, y: 450 })
     expect(mockInstance.post).not.toHaveBeenCalled()
   })
 
-  it('gère plusieurs positions en parallèle', async () => {
-    mockInstance.get.mockResolvedValue({ data: { list: [] } })
+  it('gère plusieurs positions en un seul POST', async () => {
     mockInstance.post.mockResolvedValue({ data: {} })
 
     await api.savePositions('session-1', {
@@ -177,6 +189,8 @@ describe('savePositions', () => {
       'app-2': { x: 300, y: 400 },
     })
 
-    expect(mockInstance.post).toHaveBeenCalledTimes(2)
+    expect(mockInstance.post).toHaveBeenCalledTimes(1)
+    const rows = mockInstance.post.mock.calls[0][1]
+    expect(rows).toHaveLength(2)
   })
 })

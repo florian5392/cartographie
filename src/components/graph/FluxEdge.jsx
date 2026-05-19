@@ -1,6 +1,6 @@
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, MarkerType } from 'reactflow'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath } from 'reactflow'
 
-const FLUX_STYLES = {
+export const FLUX_STYLES = {
   API:    { stroke: '#60a5fa', strokeDasharray: undefined,  strokeWidth: 2 },
   Fichier:{ stroke: '#facc15', strokeDasharray: '7 4',      strokeWidth: 2 },
   BDD:    { stroke: '#c084fc', strokeDasharray: '2 3',      strokeWidth: 2 },
@@ -15,6 +15,7 @@ export default function FluxEdge({
   targetX, targetY,
   sourcePosition, targetPosition,
   data,
+  markerEnd,
 }) {
   const flux  = data?.flux || {}
   const style = FLUX_STYLES[flux.type] || FLUX_STYLES.Autre
@@ -34,19 +35,12 @@ export default function FluxEdge({
     strokeDasharray:  style.strokeDasharray,
   }
 
-  const markerEnd = {
-    type:  MarkerType.ArrowClosed,
-    color: style.stroke,
-    width: 16,
-    height: 16,
-  }
-
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
-        markerEnd={JSON.stringify(markerEnd)}
+        markerEnd={markerEnd}
         style={edgeStyle}
         className="edge-draw"
       />

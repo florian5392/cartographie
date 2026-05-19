@@ -7,11 +7,12 @@ import ReactFlow, {
   useEdgesState,
   BackgroundVariant,
   Panel,
+  MarkerType,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import useSessionStore from '../../stores/sessionStore'
 import AppNode from './AppNode'
-import FluxEdge from './FluxEdge'
+import FluxEdge, { FLUX_STYLES } from './FluxEdge'
 
 // ─── Column header node ──────────────────────────────────────────────────────
 
@@ -189,6 +190,7 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, showM
       data: {
         app,
         onEdit: readOnly ? null : onNodeEdit,
+        onDelete: readOnly ? null : (a) => setPendingDelete({ nodes: [{ id: a.id, data: { app: a } }], edges: [] }),
         etablissements: appEtabsMap[app.id] || [],
         isMultiSite,
       },
@@ -200,14 +202,19 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, showM
   // ── Sync edges ──
   useEffect(() => {
     setEdges(
-      flux.map(f => ({
-        id: f.id,
-        source: f.sourceId,
-        target: f.cibleId,
-        type: 'fluxEdge',
-        data: { flux: f },
-        deletable: !readOnly,
-      })),
+      flux.map(f => {
+        const stroke = (FLUX_STYLES[f.type] || FLUX_STYLES.Autre).stroke
+        return {
+          id: f.id,
+          source: f.sourceId,
+          target: f.cibleId,
+          type: 'fluxEdge',
+          data: { flux: f },
+          deletable: !readOnly,
+          markerEnd: { type: MarkerType.ArrowClosed, color: stroke, width: 16, height: 16 },
+          animated: true,
+        }
+      }),
     )
   }, [flux, readOnly, setEdges])
 

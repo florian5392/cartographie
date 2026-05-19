@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import useSessionStore from '../stores/sessionStore'
-import * as api from '../api/nocodb'
+import * as api from '../api/api'
 
 export function useAutoSave(interval = 30000) {
   const [saveStatus, setSaveStatus] = useState('saved')
@@ -23,21 +23,15 @@ export function useAutoSave(interval = 30000) {
     try {
       // Drain offline queue first
       if (offlineQueue.current.length > 0) {
-        for (const op of offlineQueue.current) {
-          await op()
-        }
+        for (const op of offlineQueue.current) await op()
         offlineQueue.current = []
       }
 
-      // Save positions
-      await api.savePositions(session.id, positions)
-
-      // Sync applications: upsert changed ones
+      // 1. Sync applications (positions and flux reference them — must be first)
       const prevAppIds = new Set(lastSavedApps.current.map((a) => a.id))
       for (const app of applications) {
         if (!prevAppIds.has(app.id)) {
-          // New app
-          try { await api.createApplication({ ...app, sessionId: session.id }) } catch { /* best effort */ }
+          try { await api.createApplication(app) } catch { /* best effort */ }
         } else {
           const prev = lastSavedApps.current.find((a) => a.id === app.id)
           if (prev && JSON.stringify(prev) !== JSON.stringify(app)) {
@@ -45,7 +39,28 @@ export function useAutoSave(interval = 30000) {
           }
         }
       }
-      // Delete removed apps
+
+      // 2. Sync flux (delete removed before deleting apps, then create/update)
+      const prevFluxIds = new Set(lastSavedFlux.current.map((f) => f.id))
+      const currentFluxIds = new Set(flux.map((f) => f.id))
+      for (const prev of lastSavedFlux.current) {
+        if (!currentFluxIds.has(prev.id)) {
+          try { await api.deleteFlux(prev.id) } catch { /* best effort */ }
+        }
+      }
+      for (const f of flux) {
+        if (!prevFluxIds.has(f.id)) {
+          try { await api.createFlux(f) } catch { /* best effort */ }
+        } else {
+          const prev = lastSavedFlux.current.find((x) => x.id === f.id)
+          if (prev && JSON.stringify(prev) !== JSON.stringify(f)) {
+            try { await api.updateFlux(f.id, f) } catch { /* best effort */ }
+          }
+        }
+      }
+      lastSavedFlux.current = flux
+
+      // 3. Delete removed apps (after flux cleaned up)
       const currentAppIds = new Set(applications.map((a) => a.id))
       for (const prev of lastSavedApps.current) {
         if (!currentAppIds.has(prev.id)) {
@@ -54,26 +69,8 @@ export function useAutoSave(interval = 30000) {
       }
       lastSavedApps.current = applications
 
-      // Sync flux: upsert changed ones
-      const prevFluxIds = new Set(lastSavedFlux.current.map((f) => f.id))
-      for (const f of flux) {
-        if (!prevFluxIds.has(f.id)) {
-          try { await api.createFlux({ ...f, sessionId: session.id }) } catch { /* best effort */ }
-        } else {
-          const prev = lastSavedFlux.current.find((x) => x.id === f.id)
-          if (prev && JSON.stringify(prev) !== JSON.stringify(f)) {
-            try { await api.updateFlux(f.id, f) } catch { /* best effort */ }
-          }
-        }
-      }
-      // Delete removed flux
-      const currentFluxIds = new Set(flux.map((f) => f.id))
-      for (const prev of lastSavedFlux.current) {
-        if (!currentFluxIds.has(prev.id)) {
-          try { await api.deleteFlux(prev.id) } catch { /* best effort */ }
-        }
-      }
-      lastSavedFlux.current = flux
+      // 4. Save positions (after apps exist in DB)
+      await api.savePositions(session.id, positions)
 
       markSaved()
       setSaveStatus('saved')

@@ -14,7 +14,10 @@ const APP_C   = { id: 'app-c', nom: 'Gamma', criticite: 'moyenne' }
 function mockStore(overrides = {}) {
   useSessionStore.mockReturnValue({
     addFlux: vi.fn(),
+    updateFlux: vi.fn(),
+    removeFlux: vi.fn(),
     applications: [APP_A, APP_B],
+    flux: [],
     session: SESSION,
     ...overrides,
   })

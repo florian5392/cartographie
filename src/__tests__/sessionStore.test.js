@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Mock the API module so store tests don't make real HTTP calls
-vi.mock('../api/nocodb', () => ({
-  isNocoDBReachable: vi.fn().mockResolvedValue(false),
+vi.mock('../api/api', () => ({
+  isAPIReachable: vi.fn().mockResolvedValue(false),
   getSessions: vi.fn().mockResolvedValue([]),
   getApplications: vi.fn().mockResolvedValue([]),
   getFlux: vi.fn().mockResolvedValue([]),

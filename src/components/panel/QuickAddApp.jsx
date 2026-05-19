@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import useSessionStore from '../../stores/sessionStore'
 
-const APP_TYPES = ['ERP', 'DPI', 'SIH', 'Imagerie', 'Messagerie', 'Annuaire', 'BI', 'CRM', 'Métier', 'Autre']
+const APP_TYPES = ['DPI', 'Imagerie', 'Messagerie', 'Annuaire']
+const HEBERGEMENTS = ['On-premise', 'Cloud public', 'SaaS', 'Hybride']
+const PORTEES = ['Etablissement', 'Groupe', 'Externe']
 const PERIMETRES = ['global', 'multi-sites', 'local']
 const CRITICITES = [
   { value: 'haute',   label: 'Haute',   dot: 'bg-red-500',    active: 'border-red-500 text-red-400' },
@@ -12,7 +14,7 @@ const STATUTS = ['production', 'recette', 'pilote', 'développement', 'retraité
 
 const DEFAULT = {
   nom: '', type: '', criticite: 'moyenne', perimetre: 'local',
-  description: '', editeur: '', version: '', responsable: '',
+  hebergement: '', portee: '', description: '', editeur: '', version: '', responsable: '',
   statut: 'production', couleur: '#6366f1',
 }
 
@@ -130,10 +132,10 @@ export default function QuickAddApp({ editingApp, onEditDone, readOnly }) {
         )}
       </div>
 
-      {/* Type — pills */}
+      {/* Type — pills + saisie libre */}
       <div>
         <label className="block text-xs text-gray-400 mb-1">Type</label>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 mb-1">
           {APP_TYPES.map(t => (
             <button
               key={t}
@@ -149,6 +151,14 @@ export default function QuickAddApp({ editingApp, onEditDone, readOnly }) {
             </button>
           ))}
         </div>
+        {!APP_TYPES.includes(form.type) && (
+          <input
+            value={form.type}
+            onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            placeholder="Autre type… (saisie libre)"
+          />
+        )}
       </div>
 
       {/* Criticité — boutons visuels */}
@@ -168,6 +178,52 @@ export default function QuickAddApp({ editingApp, onEditDone, readOnly }) {
             >
               <span className={`w-2 h-2 rounded-full shrink-0 ${form.criticite === c.value ? c.dot : 'bg-gray-600'}`} />
               {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Hébergement — pills */}
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Hébergement</label>
+        <div className="flex flex-wrap gap-1">
+          {HEBERGEMENTS.map(h => (
+            <button
+              key={h}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, hebergement: f.hebergement === h ? '' : h }))}
+              className={`px-2 py-0.5 rounded text-xs border transition-colors ${
+                form.hebergement === h
+                  ? 'bg-teal-700 border-teal-500 text-white'
+                  : 'bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+              }`}
+            >
+              {h}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Portée — Etablissement / Groupe */}
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Portée organisationnelle</label>
+        <div className="flex gap-1">
+          {PORTEES.map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, portee: f.portee === p ? '' : p }))}
+              className={`flex-1 py-1 rounded text-xs border transition-colors ${
+                form.portee === p
+                  ? p === 'Groupe'
+                    ? 'bg-indigo-700 border-indigo-500 text-white'
+                    : p === 'Externe'
+                    ? 'bg-amber-700 border-amber-500 text-white'
+                    : 'bg-emerald-700 border-emerald-500 text-white'
+                  : 'bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+              }`}
+            >
+              {p}
             </button>
           ))}
         </div>

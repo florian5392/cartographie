@@ -56,6 +56,22 @@ function generateMarkdown({ session, applications, flux, etablissements, deploie
     }
   }
 
+  const appsWithFlux = new Set([...flux.map((f) => f.sourceId), ...flux.map((f) => f.cibleId)])
+  const coveragePercent =
+    applications.length > 0 ? Math.round((appsWithFlux.size / applications.length) * 100) : 0
+  const criticalCount = applications.filter((a) => a.criticite === 'haute').length
+
+  lines.push('\n## KPIs')
+  lines.push('\n| Indicateur | Valeur |')
+  lines.push('|------------|--------|')
+  lines.push(`| Applications recensées | ${applications.length} |`)
+  lines.push(`| Flux tracés | ${flux.length} |`)
+  lines.push(`| Applications critiques | ${criticalCount} |`)
+  lines.push(`| Couverture | ${coveragePercent}% |`)
+  if (etablissements.length > 0) {
+    lines.push(`| Établissements | ${etablissements.length} |`)
+  }
+
   return lines.join('\n')
 }
 
@@ -65,39 +81,53 @@ export default function ExportPanel({ onClose }) {
 
   const handleExportJSON = () => {
     const data = { session, applications, flux, positions, etablissements, deploiements }
-    const json = JSON.stringify(data, null, 2)
-    const filename = `cartographie-${session?.nom?.replace(/\s+/g, '-') || 'session'}-${Date.now()}.json`
-    downloadBlob(json, filename, 'application/json')
+    downloadBlob(JSON.stringify(data, null, 2), `cartographie-${slug}-${Date.now()}.json`, 'application/json')
   }
 
   const handleExportMarkdown = () => {
     const md = generateMarkdown({ session, applications, flux, etablissements, deploiements })
-    const filename = `cartographie-${session?.nom?.replace(/\s+/g, '-') || 'session'}-${Date.now()}.md`
-    downloadBlob(md, filename, 'text/markdown')
+    downloadBlob(md, `cartographie-${slug}-${Date.now()}.md`, 'text/markdown')
   }
+
+  const slug = session?.nom?.replace(/\s+/g, '-') || 'session'
 
   const handleExportPNG = async () => {
     setExporting(true)
     try {
       const { toPng } = await import('html-to-image')
       const flowEl = document.querySelector('.react-flow')
-      if (!flowEl) {
-        alert('Impossible de capturer le graphe.')
-        return
-      }
-      const dataUrl = await toPng(flowEl, {
-        backgroundColor: '#111827',
-        quality: 1,
-      })
+      if (!flowEl) { alert('Impossible de capturer le graphe.'); return }
+      const dataUrl = await toPng(flowEl, { backgroundColor: '#111827', quality: 1 })
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `cartographie-${session?.nom?.replace(/\s+/g, '-') || 'session'}-${Date.now()}.png`
+      a.download = `cartographie-${slug}-${Date.now()}.png`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
     } catch (err) {
       console.error('PNG export failed', err)
       alert('Export PNG échoué. Essayez avec Ctrl+P pour imprimer.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleExportSVG = async () => {
+    setExporting(true)
+    try {
+      const { toSvg } = await import('html-to-image')
+      const flowEl = document.querySelector('.react-flow')
+      if (!flowEl) { alert('Impossible de capturer le graphe.'); return }
+      const dataUrl = await toSvg(flowEl, { backgroundColor: '#111827' })
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `cartographie-${slug}-${Date.now()}.svg`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('SVG export failed', err)
+      alert('Export SVG échoué.')
     } finally {
       setExporting(false)
     }
@@ -121,17 +151,30 @@ export default function ExportPanel({ onClose }) {
         </div>
 
         <div className="space-y-3">
-          <button
-            onClick={handleExportPNG}
-            disabled={exporting}
-            className="w-full flex items-center gap-3 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <span className="text-2xl">🖼️</span>
-            <div className="text-left">
-              <div className="font-medium">Export PNG</div>
-              <div className="text-xs text-gray-400">Capture du graphe en image</div>
-            </div>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportPNG}
+              disabled={exporting}
+              className="flex-1 flex items-center gap-3 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <span className="text-2xl">🖼️</span>
+              <div className="text-left">
+                <div className="font-medium">PNG</div>
+                <div className="text-xs text-gray-400">Image bitmap</div>
+              </div>
+            </button>
+            <button
+              onClick={handleExportSVG}
+              disabled={exporting}
+              className="flex-1 flex items-center gap-3 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <span className="text-2xl">✏️</span>
+              <div className="text-left">
+                <div className="font-medium">SVG</div>
+                <div className="text-xs text-gray-400">Vectoriel</div>
+              </div>
+            </button>
+          </div>
 
           <button
             onClick={handleExportMarkdown}

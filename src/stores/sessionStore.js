@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import * as api from '../api/nocodb'
+import * as api from '../api/api'
 import {
   demoSession,
   demoApplications,
@@ -34,7 +34,7 @@ const useSessionStore = create((set, get) => ({
 
   // ---- initStore ----
   initStore: async () => {
-    const reachable = await api.isNocoDBReachable()
+    const reachable = await api.isAPIReachable()
     if (!reachable) {
       set({ demoMode: true, sessions: [{ ...demoSession, _appCount: demoApplications.length, _fluxCount: demoFlux.length }] })
     } else {

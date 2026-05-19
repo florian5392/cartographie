@@ -1,9 +1,46 @@
+import { useState, useEffect, useRef } from 'react'
 import useSessionStore from '../stores/sessionStore'
 
+function useCountUp(target, duration = 400) {
+  const [display, setDisplay] = useState(target)
+  const prevRef = useRef(target)
+
+  useEffect(() => {
+    const isPercent = typeof target === 'string' && target.endsWith('%')
+    const targetNum = isPercent ? parseInt(target) : Number(target)
+    const prevNum = isPercent ? parseInt(prevRef.current) : Number(prevRef.current)
+
+    if (isNaN(targetNum) || isNaN(prevNum) || targetNum === prevNum) {
+      setDisplay(target)
+      prevRef.current = target
+      return
+    }
+
+    const startTime = performance.now()
+    const diff = targetNum - prevNum
+    let raf
+
+    function animate(now) {
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - (1 - progress) * (1 - progress)
+      const current = Math.round(prevNum + diff * eased)
+      setDisplay(isPercent ? `${current}%` : current)
+      if (progress < 1) raf = requestAnimationFrame(animate)
+      else prevRef.current = target
+    }
+
+    raf = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration])
+
+  return display
+}
+
 function KpiCard({ label, value, color = 'text-white' }) {
+  const animated = useCountUp(value)
   return (
     <div className="flex flex-col items-center justify-center px-4 py-2 min-w-[80px]">
-      <span className={`text-xl font-bold tabular-nums ${color}`}>{value}</span>
+      <span className={`text-xl font-bold tabular-nums ${color}`}>{animated}</span>
       <span className="text-xs text-gray-400 mt-0.5 whitespace-nowrap">{label}</span>
     </div>
   )
@@ -17,12 +54,6 @@ export default function KpiBar({ onExport, onPresentation, onBack, onToggleStatu
   const fluxCount = flux.length
   const criticalCount = applications.filter((a) => a.criticite === 'haute').length
   const etablissementCount = etablissements.length
-
-  const appsWithFlux = new Set([
-    ...flux.map((f) => f.sourceId),
-    ...flux.map((f) => f.cibleId),
-  ])
-  const coveragePercent = appCount > 0 ? Math.round((appsWithFlux.size / appCount) * 100) : 0
 
   return (
     <div className="flex items-center bg-gray-800 border-b border-gray-700 h-14 px-2 gap-1 overflow-x-auto shrink-0">
@@ -82,13 +113,7 @@ export default function KpiBar({ onExport, onPresentation, onBack, onToggleStatu
           color={criticalCount > 0 ? 'text-red-400' : 'text-gray-500'}
         />
         {session?.perimetre === 'multi-sites' && (
-          <>
-            <KpiCard label="Établ." value={etablissementCount} color="text-green-400" />
-            <KpiCard label="Couverture" value={`${coveragePercent}%`} color="text-teal-400" />
-          </>
-        )}
-        {session?.perimetre === 'mono-site' && (
-          <KpiCard label="Couverture" value={`${coveragePercent}%`} color="text-teal-400" />
+          <KpiCard label="Établ." value={etablissementCount} color="text-green-400" />
         )}
       </div>
 
