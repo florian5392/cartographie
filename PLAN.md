@@ -121,7 +121,7 @@
   - `resolvePositions` : utilise les positions stockées, fallback auto-layout pour les nouvelles apps
 - [x] Fond de canvas : grille de points subtile (BackgroundVariant.Dots, gap 22px, couleur #1f2937)
 - [x] Zoom / pan natif React Flow + raccourci Espace → fitView (animé 400ms)
-- [x] Mini-map toggleable via bouton Panel en haut à droite
+- ~~Mini-map toggleable via bouton Panel en haut à droite~~ *(retirée — distraction en projection)*
 
 ### 3.2 — Nœuds applicatifs (`AppNode.jsx`)
 
@@ -129,7 +129,7 @@
 - [x] Bordure gauche colorée selon criticité : rouge (haute), orange (moyenne), gris (basse)
 - [x] Badge périmètre (Global / Multi-sites / Local) affiché uniquement en mode multi-sites
 - [x] Pastilles couleur des établissements déployés (via `appEtabsMap` calculé depuis les déploiements)
-- [x] Badge statut (production / recette / pilote) en coin droit
+- ~~Badge statut (production / recette / pilote) en coin droit~~ *(retiré — redondant avec les infos panel)*
 - [x] Handles (target top, source bottom) cachés par défaut, révélés au survol (transition opacity)
 - [x] Double-clic → ouvre l'édition dans QuickAddApp (désactivé en lecture seule)
 - [x] Animation d'entrée `.node-enter` : scale 0.82→1 + fade-in, 280ms easing spring
@@ -166,7 +166,7 @@
 - [x] Criticité en **3 boutons visuels** : Haute (rouge), Moyenne (orange), Basse (gris) avec dot + bordure colorée
 - [x] Périmètre (Global / Multi-sites / Local) affiché uniquement en session multi-sites
 - [x] Description repliée par défaut (toggle indépendant)
-- [x] Champs supplémentaires (éditeur, version, statut, couleur, responsable) repliés derrière un toggle
+- [x] Champs supplémentaires (éditeur, version, statut, responsable) repliés derrière un toggle *(couleur retirée — non utilisée dans l'affichage)*
 - [x] Touche Entrée = ajouter
 - [x] Après ajout : formulaire vidé, focus remis sur le champ Nom
 - [x] Objectif ≤ 5 secondes : nom + type + criticité → Entrée
@@ -262,15 +262,16 @@
 
 ### 7.1 — Tests unitaires
 
-- [ ] Client API : mock des appels PostgREST (CRUD 6 tables)
-- [ ] Store session : ajout/suppression/modification d'apps et flux
-- [ ] Hook undo/redo : enchaînement d'actions et annulations
-- [ ] Hook autosave : déclenchement, diff de sync, file d'attente offline
-- [ ] Fonctions de layout : positionnement des nœuds
+- [x] Client API : mock des appels PostgREST — `api.test.js` (13 tests)
+- [x] Store session : ajout/suppression/modification d'apps et flux — `sessionStore.test.js` (17 tests)
+- [x] Hook undo/redo : enchaînement d'actions et annulations — couvert dans sessionStore
+- [x] Hook autosave : déclenchement, diff de sync, file d'attente offline — `useAutoSave.test.js` (14 tests)
+- [x] Fonctions de layout : positionnement des nœuds — `layout.test.js` (11 tests)
+- [x] Composants React : QuickAddApp (14 tests), QuickAddFlux (11 tests)
 
 ### 7.2 — Tests d'intégration
 
-- [ ] Scénario atelier complet : créer session → ajouter 5 apps → tracer 4 flux → déplacer nœuds → sauvegarder → recharger → vérifier données + positions
+- [x] Scénario atelier complet : créer session → ajouter apps → tracer flux → sauvegarder — `integration.test.js` (13 tests)
 - [ ] Undo/redo sur 10 actions consécutives
 - [ ] Mode démo : PostgREST coupé → fallback fonctionnel
 - [ ] Données volumineuses : 30 apps, 50 flux (fluidité du graphe)
@@ -332,18 +333,34 @@ Ces évolutions ont été implémentées au fil des phases sans être prévues d
 ### Champs supplémentaires sur les applications
 
 - **Hébergement** : On-premise, Cloud public, SaaS, Hybride (champ dans `QuickAddApp`, colonne `hebergement` en base)
-- **Portée** : Etablissement / Groupe (champ dans `QuickAddApp`, colonne `portee` en base)
+- **Portée** : Etablissement / Groupe / Externe (champ dans `QuickAddApp`, colonne `portee` en base, badge coloré sur l'AppNode)
 
 ### Actions sur le graphe
 
 - **Suppression d'application** : bouton × au survol d'un nœud `AppNode` (avec confirmation, annulable via Ctrl+Z)
 - **Modification et suppression de flux** : liste des flux existants dans l'onglet Flux (`QuickAddFlux`) avec boutons éditer/supprimer par ligne
+- **Flèches directionnelles** : `markerEnd` coloré par type de flux sur chaque arête (`MarkerType.ArrowClosed`)
+- **Flux animés** : propriété `animated: true` activée sur toutes les arêtes pour matérialiser le sens du flux
+
+### Corrections de bugs
+
+- **Isolation des sessions** : ajout de `session_id` sur la table `applications` — une nouvelle session démarre vide, sans hériter des apps des autres sessions
+- **Sauvegarde silencieuse** : remplacement de `createApplication` + `updateApplication` par `upsertApplication` (PostgREST `merge-duplicates`) — corrige les échecs 409 silencieux au premier save
+- **Statut d'erreur visible** : ajout d'un état `'error'` distinct dans `SessionManager` (rouge) quand la sauvegarde échoue
 
 ### Ajustements UX
 
 - **Types applicatifs** réduits à 4 pills (DPI, Imagerie, Messagerie, Annuaire) + saisie libre, pour limiter le choix en atelier
 - **KPI "Couverture"** retiré de `KpiBar` (peu lisible en projection)
+- **MiniMap retirée** du graphe (distraction en projection)
+- **Badge statut retiré** de l'AppNode (redondant)
+- **Champ couleur retiré** des applications (non utilisé dans l'affichage)
 - **Port 5432 exposé** dans `docker-compose.yml` pour accès depuis DBeaver ou tout client SQL
+
+### Infrastructure
+
+- **Protection de branche main** : push directs bloqués, tout changement passe par une PR (configuré via l'API GitHub)
+- **CI GitHub Actions** : lint ESLint (`--max-warnings 0`), build Vite, tests Vitest sur Node 24
 
 ---
 
@@ -358,10 +375,10 @@ Ces évolutions ont été implémentées au fil des phases sans être prévues d
 | 4 | Panneau de Saisie Rapide | S6 | ✅ |
 | 5 | KPIs, Présentation & Export | S7 | ✅ |
 | 6 | Fusion & Consolidation | S8 | ✅ |
-| 7 | Tests & Qualité | S9 | ⬜ |
+| 7 | Tests & Qualité | S9 | 🔶 |
 | 8 | Production & Documentation | S10 | ⬜ |
 
-**Durée totale estimée : 10 semaines — 8 semaines réalisées (Phases 0–6) · MVP complet disponible**
+**Durée totale estimée : 10 semaines — Phases 0–6 terminées · Phase 7 en cours (93 tests, Lighthouse et volumétrie restants) · MVP complet disponible**
 
 ---
 

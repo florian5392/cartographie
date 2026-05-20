@@ -19,7 +19,7 @@ Conçu pour animer des séances de recensement du SI : saisie rapide des applica
 - **Vue consolidée** : graphe fusionné de toutes les sessions avec filtre par session
 - **Référentiel applicatif** : tableau filtrable (type, criticité, recherche texte) avec colonnes par établissement et export CSV
 - **Comparaison de sessions** : diff apps/flux entre deux ateliers (ajouts, suppressions, communs)
-- **Hébergement et portée** : champs supplémentaires sur chaque application (On-premise/Cloud/SaaS/Hybride, Etablissement/Groupe)
+- **Hébergement et portée** : champs supplémentaires sur chaque application (On-premise/Cloud/SaaS/Hybride, Etablissement/Groupe/Externe)
 
 ---
 
