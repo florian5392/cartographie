@@ -18,11 +18,6 @@ const PERIMETRE_BADGE = {
   local:        { label: 'Local',        cls: 'bg-gray-700 text-gray-400' },
 }
 
-const STATUT_BADGE = {
-  production: 'bg-green-900 text-green-300',
-  recette:    'bg-yellow-900 text-yellow-300',
-  pilote:     'bg-blue-900 text-blue-300',
-}
 
 const HEBERGEMENT_BADGE = {
   'On-premise':   'bg-gray-700 text-gray-300',
@@ -34,6 +29,7 @@ const HEBERGEMENT_BADGE = {
 const PORTEE_BADGE = {
   'Etablissement': 'bg-emerald-900 text-emerald-300',
   'Groupe':        'bg-indigo-900 text-indigo-300',
+  'Externe':       'bg-amber-900 text-amber-300',
 }
 
 export default function AppNode({ data, selected }) {
@@ -92,8 +88,8 @@ export default function AppNode({ data, selected }) {
                 {app.hebergement}
               </span>
             )}
-            {app.portee && PORTEE_BADGE[app.portee] && (
-              <span className={`text-xs px-1.5 py-0.5 rounded ${PORTEE_BADGE[app.portee]}`}>
+            {app.portee && (
+              <span className={`text-xs px-1.5 py-0.5 rounded ${PORTEE_BADGE[app.portee] || 'bg-gray-700 text-gray-300'}`}>
                 {app.portee}
               </span>
             )}
@@ -105,11 +101,6 @@ export default function AppNode({ data, selected }) {
           <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${dotCls}`} />
           <span className="text-gray-400 text-xs capitalize">{app.criticite}</span>
 
-          {app.statut && STATUT_BADGE[app.statut] && (
-            <span className={`ml-auto text-xs px-1.5 py-0.5 rounded ${STATUT_BADGE[app.statut]}`}>
-              {app.statut}
-            </span>
-          )}
         </div>
 
         {/* Périmètre badge — multi-sites only */}

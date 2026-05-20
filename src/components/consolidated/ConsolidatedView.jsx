@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import ReactFlow, {
-  Background, Controls, MiniMap, BackgroundVariant,
+  Background, Controls, BackgroundVariant,
   useNodesState, useEdgesState,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
@@ -214,7 +214,6 @@ export default function ConsolidatedView({ onBack }) {
           >
             <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#1f2937" />
             <Controls showInteractive={false} className="bg-gray-800 border-gray-700" />
-            <MiniMap nodeColor={n => n.data?.app?.couleur || '#374151'} nodeStrokeWidth={2} maskColor="rgba(17,24,39,0.75)" />
           </ReactFlow>
         )}
       </div>

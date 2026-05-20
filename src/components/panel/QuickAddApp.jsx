@@ -15,7 +15,7 @@ const STATUTS = ['production', 'recette', 'pilote', 'développement', 'retraité
 const DEFAULT = {
   nom: '', type: '', criticite: 'moyenne', perimetre: 'local',
   hebergement: '', portee: '', description: '', editeur: '', version: '', responsable: '',
-  statut: 'production', couleur: '#6366f1',
+  statut: 'production',
 }
 
 export default function QuickAddApp({ editingApp, onEditDone, readOnly }) {
@@ -294,15 +294,6 @@ export default function QuickAddApp({ editingApp, onEditDone, readOnly }) {
               >
                 {STATUTS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Couleur</label>
-              <input
-                type="color"
-                value={form.couleur}
-                onChange={e => setForm(f => ({ ...f, couleur: e.target.value }))}
-                className="w-full h-8 bg-gray-700 border border-gray-600 rounded cursor-pointer"
-              />
             </div>
           </div>
           <div>

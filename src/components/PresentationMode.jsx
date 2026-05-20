@@ -52,7 +52,7 @@ export default function PresentationMode({ onExit }) {
 
       {/* Graph */}
       <div className="flex-1 mt-14">
-        <GraphCanvas showMiniMap={false} />
+        <GraphCanvas />
       </div>
 
       {/* Laser pointer */}

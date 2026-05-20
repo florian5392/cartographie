@@ -38,11 +38,11 @@ function fromSession(d) {
 }
 
 function toApplication(r) {
-  return { id: r.id, nom: r.nom, type: r.type, editeur: r.editeur, version: r.version, criticite: r.criticite, perimetre: r.perimetre, statut: r.statut, description: r.description, couleur: r.couleur, responsable: r.responsable, hebergement: r.hebergement, portee: r.portee }
+  return { id: r.id, nom: r.nom, type: r.type, editeur: r.editeur, version: r.version, criticite: r.criticite, perimetre: r.perimetre, statut: r.statut, description: r.description, responsable: r.responsable, hebergement: r.hebergement, portee: r.portee }
 }
 
 function fromApplication(d) {
-  return { id: d.id, nom: d.nom, type: d.type, editeur: d.editeur, version: d.version, criticite: d.criticite, perimetre: d.perimetre, statut: d.statut, description: d.description, couleur: d.couleur, responsable: d.responsable, hebergement: d.hebergement, portee: d.portee }
+  return { id: d.id, nom: d.nom, type: d.type, editeur: d.editeur, version: d.version, criticite: d.criticite, perimetre: d.perimetre, statut: d.statut, description: d.description, responsable: d.responsable, hebergement: d.hebergement, portee: d.portee }
 }
 
 function toFlux(r) {
@@ -109,18 +109,11 @@ export async function getApplications() {
   })
 }
 
-export async function createApplication(data) {
+export async function upsertApplication(data) {
   return withRetry(async () => {
-    const res = await client.post('/applications', fromApplication(data), {
-      headers: { Prefer: 'return=representation' },
+    await client.post('/applications', fromApplication(data), {
+      headers: { Prefer: 'resolution=merge-duplicates' },
     })
-    return toApplication(res.data[0])
-  })
-}
-
-export async function updateApplication(id, data) {
-  return withRetry(async () => {
-    await client.patch(`/applications?id=eq.${id}`, fromApplication(data))
   })
 }
 

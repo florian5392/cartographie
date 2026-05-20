@@ -28,15 +28,11 @@ export function useAutoSave(interval = 30000) {
       }
 
       // 1. Sync applications (positions and flux reference them — must be first)
-      const prevAppIds = new Set(lastSavedApps.current.map((a) => a.id))
+      const prevAppMap = new Map(lastSavedApps.current.map((a) => [a.id, a]))
       for (const app of applications) {
-        if (!prevAppIds.has(app.id)) {
-          try { await api.createApplication(app) } catch { /* best effort */ }
-        } else {
-          const prev = lastSavedApps.current.find((a) => a.id === app.id)
-          if (prev && JSON.stringify(prev) !== JSON.stringify(app)) {
-            try { await api.updateApplication(app.id, app) } catch { /* best effort */ }
-          }
+        const prev = prevAppMap.get(app.id)
+        if (!prev || JSON.stringify(prev) !== JSON.stringify(app)) {
+          try { await api.upsertApplication(app) } catch (e) { console.warn('upsertApplication failed', e) }
         }
       }
 
@@ -74,8 +70,9 @@ export function useAutoSave(interval = 30000) {
 
       markSaved()
       setSaveStatus('saved')
-    } catch {
-      setSaveStatus('unsaved')
+    } catch (e) {
+      console.error('Save failed', e)
+      setSaveStatus('error')
     }
   }, [])
 

@@ -18,9 +18,10 @@ const TABS = [
 ]
 
 const SAVE_STATUS_CONFIG = {
-  saved: { text: 'Sauvegardé ✓', cls: 'text-green-400' },
-  saving: { text: 'Sauvegarde...', cls: 'text-yellow-400' },
-  unsaved: { text: 'Non sauvegardé ⚠', cls: 'text-orange-400' },
+  saved:   { text: 'Sauvegardé ✓',      cls: 'text-green-400' },
+  saving:  { text: 'Sauvegarde...',      cls: 'text-yellow-400' },
+  unsaved: { text: 'Non sauvegardé ⚠',  cls: 'text-orange-400' },
+  error:   { text: 'Erreur de sauvegarde ✗', cls: 'text-red-400' },
 }
 
 export default function SessionManager() {
@@ -187,10 +188,10 @@ export default function SessionManager() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${statusConfig.cls}`}>{statusConfig.text}</span>
-                {saveStatus === 'unsaved' && !demoMode && (
+                {(saveStatus === 'unsaved' || saveStatus === 'error') && !demoMode && (
                   <button
                     onClick={save}
-                    className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                    className={`text-xs text-white px-2 py-1 rounded ${saveStatus === 'error' ? 'bg-red-700 hover:bg-red-600' : 'bg-blue-700 hover:bg-blue-600'}`}
                   >
                     Sauv.
                   </button>
@@ -206,7 +207,6 @@ export default function SessionManager() {
             onNodeEdit={handleNodeEdit}
             onConnect={handleConnect}
             onOpenAddApp={handleOpenAddApp}
-            showMiniMap={true}
             flowRef={flowRef}
             readOnly={isReadOnly}
           />

@@ -228,12 +228,7 @@ export default function ReferentielTable({ onBack }) {
                 className={`border-b border-gray-800/60 hover:bg-gray-800/40 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-900/40'}`}
               >
                 <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    {app.couleur && (
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: app.couleur }} />
-                    )}
-                    <span className="text-white font-medium">{app.nom}</span>
-                  </div>
+                  <span className="text-white font-medium">{app.nom}</span>
                 </td>
                 <td className="px-4 py-2.5 text-gray-400 text-xs">{app.type}</td>
                 <td className="px-4 py-2.5 text-gray-400 text-xs">{app.hebergement}</td>

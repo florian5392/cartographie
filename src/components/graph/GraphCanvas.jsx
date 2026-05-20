@@ -2,11 +2,9 @@ import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import ReactFlow, {
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
   BackgroundVariant,
-  Panel,
   MarkerType,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
@@ -135,14 +133,13 @@ function resolvePositions(apps, stored, session, deploiements, etablissements) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, showMiniMap = true, flowRef, readOnly = false }) {
+export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, flowRef, readOnly = false }) {
   const { applications, flux, positions, updatePositions, removeApplication, removeFlux,
           session, deploiements, etablissements } = useSessionStore()
 
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNodeId, setSelectedNodeId]   = useState(null)
-  const [miniMapVisible, setMiniMapVisible]   = useState(showMiniMap)
   const [pendingDelete, setPendingDelete]     = useState(null) // { nodes: [], edges: [] }
   const rfInstanceRef = useRef(null)
 
@@ -336,28 +333,6 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, showM
         <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#1f2937" />
         <Controls showInteractive={false} className="bg-gray-800 border-gray-700" />
 
-        {miniMapVisible && (
-          <MiniMap
-            nodeColor={n => n.data?.app?.couleur || '#374151'}
-            nodeStrokeWidth={2}
-            maskColor="rgba(17,24,39,0.75)"
-          />
-        )}
-
-        {/* Toggle mini-map */}
-        <Panel position="top-right">
-          <button
-            onClick={() => setMiniMapVisible(v => !v)}
-            className={`text-xs px-2 py-1 rounded border transition-colors ${
-              miniMapVisible
-                ? 'bg-gray-700 border-gray-600 text-gray-300'
-                : 'bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300'
-            }`}
-            title="Afficher/masquer la mini-carte"
-          >
-            {miniMapVisible ? '⊟ Mini-carte' : '⊞ Mini-carte'}
-          </button>
-        </Panel>
       </ReactFlow>
 
       {/* Delete confirmation modal */}
