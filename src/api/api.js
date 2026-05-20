@@ -38,11 +38,11 @@ function fromSession(d) {
 }
 
 function toApplication(r) {
-  return { id: r.id, nom: r.nom, type: r.type, editeur: r.editeur, version: r.version, criticite: r.criticite, perimetre: r.perimetre, statut: r.statut, description: r.description, responsable: r.responsable, hebergement: r.hebergement, portee: r.portee }
+  return { id: r.id, sessionId: r.session_id, nom: r.nom, type: r.type, editeur: r.editeur, version: r.version, criticite: r.criticite, perimetre: r.perimetre, statut: r.statut, description: r.description, responsable: r.responsable, hebergement: r.hebergement, portee: r.portee }
 }
 
 function fromApplication(d) {
-  return { id: d.id, nom: d.nom, type: d.type, editeur: d.editeur, version: d.version, criticite: d.criticite, perimetre: d.perimetre, statut: d.statut, description: d.description, responsable: d.responsable, hebergement: d.hebergement, portee: d.portee }
+  return { id: d.id, session_id: d.sessionId, nom: d.nom, type: d.type, editeur: d.editeur, version: d.version, criticite: d.criticite, perimetre: d.perimetre, statut: d.statut, description: d.description, responsable: d.responsable, hebergement: d.hebergement, portee: d.portee }
 }
 
 function toFlux(r) {
@@ -102,9 +102,10 @@ export async function updateSession(id, data) {
 
 // ── Applications ─────────────────────────────────────────────────────────────
 
-export async function getApplications() {
+export async function getApplications(sessionId) {
   return withRetry(async () => {
-    const res = await client.get('/applications?limit=500')
+    const filter = sessionId ? `?session_id=eq.${sessionId}&limit=500` : '?limit=500'
+    const res = await client.get(`/applications${filter}`)
     return res.data.map(toApplication)
   })
 }

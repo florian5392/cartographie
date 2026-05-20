@@ -25,6 +25,7 @@ CREATE TABLE api.etablissements (
 -- Applications
 CREATE TABLE api.applications (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+  session_id TEXT REFERENCES api.sessions(id) ON DELETE CASCADE,
   nom TEXT NOT NULL,
   type TEXT,
   editeur TEXT,
@@ -41,6 +42,7 @@ CREATE TABLE api.applications (
 -- Migration pour bases existantes :
 -- ALTER TABLE api.applications ADD COLUMN IF NOT EXISTS hebergement TEXT;
 -- ALTER TABLE api.applications ADD COLUMN IF NOT EXISTS portee TEXT;
+-- ALTER TABLE api.applications ADD COLUMN IF NOT EXISTS session_id TEXT REFERENCES api.sessions(id) ON DELETE CASCADE;
 
 -- Flux
 CREATE TABLE api.flux (
@@ -78,14 +80,14 @@ CREATE VIEW api.sessions_view AS
 SELECT
   s.id, s.nom, s.date, s.perimetre, s.statut, s.etablissement_cible,
   COALESCE(fc.flux_count, 0) AS flux_count,
-  COALESCE(dc.app_count, 0) AS app_count
+  COALESCE(ac.app_count, 0) AS app_count
 FROM api.sessions s
 LEFT JOIN (
   SELECT session_id, COUNT(*) AS flux_count FROM api.flux GROUP BY session_id
 ) fc ON fc.session_id = s.id
 LEFT JOIN (
-  SELECT session_id, COUNT(DISTINCT application_id) AS app_count FROM api.deploiements GROUP BY session_id
-) dc ON dc.session_id = s.id;
+  SELECT session_id, COUNT(*) AS app_count FROM api.applications WHERE session_id IS NOT NULL GROUP BY session_id
+) ac ON ac.session_id = s.id;
 
 -- Grants
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA api TO web_anon;

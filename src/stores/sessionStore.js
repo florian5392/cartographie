@@ -83,7 +83,7 @@ const useSessionStore = create((set, get) => ({
 
     try {
       const [applications, flux, positions, deploiements, etablissements] = await Promise.all([
-        api.getApplications(),
+        api.getApplications(sessionId),
         api.getFlux(sessionId),
         api.getPositions(sessionId),
         api.getDeploiements(sessionId),
