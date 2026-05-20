@@ -27,8 +27,8 @@ beforeEach(() => {
 describe('getApplications', () => {
   it('retourne un tableau mappé depuis la réponse', async () => {
     const rows = [
-      { id: '1', nom: 'SAP', type: null, editeur: null, version: null, criticite: 'basse', perimetre: null, statut: 'production', description: null, couleur: null, responsable: null },
-      { id: '2', nom: 'Mediboard', type: null, editeur: null, version: null, criticite: 'haute', perimetre: null, statut: 'production', description: null, couleur: null, responsable: null },
+      { id: '1', nom: 'SAP', type: null, editeur: null, version: null, criticite: 'basse', perimetre: null, statut: 'production', description: null, responsable: null },
+      { id: '2', nom: 'Mediboard', type: null, editeur: null, version: null, criticite: 'haute', perimetre: null, statut: 'production', description: null, responsable: null },
     ]
     mockInstance.get.mockResolvedValue({ data: rows })
 
@@ -48,35 +48,19 @@ describe('getApplications', () => {
   })
 })
 
-// ─── createApplication ────────────────────────────────────────────────────────
+// ─── upsertApplication ────────────────────────────────────────────────────────
 
-describe('createApplication', () => {
-  it('envoie les données en POST et retourne la réponse mappée', async () => {
-    const payload = { id: '42', nom: 'SAP ERP', criticite: 'haute', type: null, editeur: null, version: null, perimetre: null, statut: 'production', description: null, couleur: null, responsable: null }
-    mockInstance.post.mockResolvedValue({ data: [payload] })
+describe('upsertApplication', () => {
+  it('envoie les données en POST avec merge-duplicates', async () => {
+    mockInstance.post.mockResolvedValue({ data: [] })
+    const payload = { id: '42', nom: 'SAP ERP', criticite: 'haute', type: null, editeur: null, version: null, perimetre: null, statut: 'production', description: null, responsable: null }
 
-    const result = await api.createApplication(payload)
+    await api.upsertApplication(payload)
 
     expect(mockInstance.post).toHaveBeenCalledWith(
       '/applications',
       expect.objectContaining({ nom: 'SAP ERP' }),
-      expect.objectContaining({ headers: expect.objectContaining({ Prefer: 'return=representation' }) }),
-    )
-    expect(result).toMatchObject({ id: '42', nom: 'SAP ERP' })
-  })
-})
-
-// ─── updateApplication ────────────────────────────────────────────────────────
-
-describe('updateApplication', () => {
-  it('envoie un PATCH avec le filtre id et les données', async () => {
-    mockInstance.patch.mockResolvedValue({ data: {} })
-
-    await api.updateApplication('app-1', { id: 'app-1', nom: 'SAP S/4HANA', type: null, editeur: null, version: null, criticite: 'haute', perimetre: null, statut: 'production', description: null, couleur: null, responsable: null })
-
-    expect(mockInstance.patch).toHaveBeenCalledWith(
-      '/applications?id=eq.app-1',
-      expect.objectContaining({ nom: 'SAP S/4HANA' }),
+      expect.objectContaining({ headers: expect.objectContaining({ Prefer: 'resolution=merge-duplicates' }) }),
     )
   })
 })
@@ -130,7 +114,7 @@ describe('getFlux', () => {
 describe('retry sur erreur réseau', () => {
   it('réessaie jusqu\'à 3 fois sur erreur réseau et réussit', async () => {
     const networkError = new Error('Network Error')
-    const row = { id: '1', nom: 'SAP', type: null, editeur: null, version: null, criticite: 'basse', perimetre: null, statut: 'production', description: null, couleur: null, responsable: null }
+    const row = { id: '1', nom: 'SAP', type: null, editeur: null, version: null, criticite: 'basse', perimetre: null, statut: 'production', description: null, responsable: null }
     mockInstance.get
       .mockRejectedValueOnce(networkError)
       .mockRejectedValueOnce(networkError)

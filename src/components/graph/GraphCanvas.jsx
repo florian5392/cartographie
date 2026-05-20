@@ -10,7 +10,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import useSessionStore from '../../stores/sessionStore'
 import AppNode from './AppNode'
-import FluxEdge, { FLUX_STYLES } from './FluxEdge'
+import FluxEdge from './FluxEdge'
+import { FLUX_STYLES } from './fluxStyles'
 
 // ─── Column header node ──────────────────────────────────────────────────────
 

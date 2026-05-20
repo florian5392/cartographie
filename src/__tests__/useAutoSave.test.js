@@ -12,8 +12,7 @@ vi.mock('../api/api', () => ({
   getEtablissements: vi.fn().mockResolvedValue([]),
   updateSession: vi.fn().mockResolvedValue({}),
   savePositions: vi.fn().mockResolvedValue({}),
-  createApplication: vi.fn().mockResolvedValue({ id: 'app-new' }),
-  updateApplication: vi.fn().mockResolvedValue({}),
+  upsertApplication: vi.fn().mockResolvedValue({}),
   deleteApplication: vi.fn().mockResolvedValue({}),
   createFlux: vi.fn().mockResolvedValue({ id: 'flux-new' }),
   updateFlux: vi.fn().mockResolvedValue({}),
@@ -79,18 +78,17 @@ describe('useAutoSave — conditions de non-sauvegarde', () => {
 // ─── Diff Applications ─────────────────────────────────────────────────────────
 
 describe('useAutoSave — diff applications', () => {
-  it('crée une application absente du dernier snapshot', async () => {
+  it('upsert une application absente du dernier snapshot', async () => {
     resetStore({ applications: [APP1], isDirty: true })
     const { result } = renderHook(() => useAutoSave(99999))
 
     await act(() => result.current.save())
 
-    expect(api.createApplication).toHaveBeenCalledOnce()
-    expect(api.createApplication).toHaveBeenCalledWith(expect.objectContaining({ id: APP1.id }))
-    expect(api.updateApplication).not.toHaveBeenCalled()
+    expect(api.upsertApplication).toHaveBeenCalledOnce()
+    expect(api.upsertApplication).toHaveBeenCalledWith(expect.objectContaining({ id: APP1.id }))
   })
 
-  it('met à jour une application modifiée depuis le dernier snapshot', async () => {
+  it('upsert une application modifiée depuis le dernier snapshot', async () => {
     resetStore({ applications: [APP1], isDirty: true })
     const { result } = renderHook(() => useAutoSave(99999))
 
@@ -103,12 +101,11 @@ describe('useAutoSave — diff applications', () => {
     resetStore({ applications: [modified], isDirty: true })
     await act(() => result.current.save())
 
-    expect(api.updateApplication).toHaveBeenCalledOnce()
-    expect(api.updateApplication).toHaveBeenCalledWith(APP1.id, modified)
-    expect(api.createApplication).not.toHaveBeenCalled()
+    expect(api.upsertApplication).toHaveBeenCalledOnce()
+    expect(api.upsertApplication).toHaveBeenCalledWith(expect.objectContaining({ id: APP1.id }))
   })
 
-  it('ne met pas à jour une application inchangée', async () => {
+  it('ne upsert pas une application inchangée', async () => {
     resetStore({ applications: [APP1], isDirty: true })
     const { result } = renderHook(() => useAutoSave(99999))
 
@@ -119,7 +116,7 @@ describe('useAutoSave — diff applications', () => {
     resetStore({ applications: [APP1], isDirty: true })
     await act(() => result.current.save())
 
-    expect(api.updateApplication).not.toHaveBeenCalled()
+    expect(api.upsertApplication).not.toHaveBeenCalled()
   })
 
   it('supprime une application retirée depuis le dernier snapshot', async () => {

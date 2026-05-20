@@ -25,7 +25,7 @@ export default function ConsolidatedView({ onBack }) {
   const { demoMode, sessions: storeSessions } = useSessionStore()
   const [applications, setApplications] = useState([])
   const [allFlux, setAllFlux]           = useState([])
-  const [etablissements, setEtablissements] = useState([])
+  const [, setEtablissements] = useState([])
   const [loading, setLoading]           = useState(true)
   const [activeSessionIds, setActiveSessionIds] = useState(new Set())
   const [selectedNodeId, setSelectedNodeId]     = useState(null)
