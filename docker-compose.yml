@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
 
   dashboard:
-    build: .
+    image: ghcr.io/florian5392/cartographie:latest
     depends_on:
       - postgrest
     ports:

@@ -34,9 +34,23 @@ Conçu pour animer des séances de recensement du SI : saisie rapide des applica
 
 ---
 
+## Image Docker pré-construite
+
+L'image est publiée automatiquement sur **GitHub Container Registry** à chaque push sur `main` :
+
+```
+ghcr.io/florian5392/cartographie:latest
+```
+
+Aucun build local nécessaire — le `docker-compose.yml` l'utilise directement.
+
+---
+
 ## Démarrage rapide (Docker — recommandé)
 
-### 1. Cloner le dépôt
+### 1. Récupérer le fichier de configuration
+
+Clonez le dépôt (pour avoir le `docker-compose.yml` et le script SQL d'initialisation) :
 
 ```bash
 git clone https://github.com/florian5392/cartographie.git
@@ -62,13 +76,13 @@ POSTGRES_PASSWORD=mon_mot_de_passe_securise
 docker compose up -d
 ```
 
-Trois services démarrent :
+L'image du dashboard est téléchargée automatiquement depuis `ghcr.io`. Trois services démarrent :
 
 | Service | Port | Rôle |
 |---------|------|------|
 | `postgres` | 5432 | Base de données (accessible depuis DBeaver ou tout client SQL) |
 | `postgrest` | 3001 (dev) / interne (prod) | API REST auto-générée |
-| `dashboard` | 80 | Application React |
+| `dashboard` | 80 | Application React (image GHCR) |
 
 Vérifiez que tout est sain :
 
@@ -236,6 +250,9 @@ Pour **comparer deux sessions**, cochez les deux sessions souhaitées dans la li
 # Démarrer tous les services
 docker compose up -d
 
+# Mettre à jour l'image dashboard (dernière version GHCR)
+docker compose pull dashboard && docker compose up -d dashboard
+
 # Voir les logs en temps réel
 docker compose logs -f
 
@@ -248,11 +265,21 @@ docker compose down
 # Supprimer complètement (ATTENTION : efface les données)
 docker compose down -v
 
-# Rebuilder l'image dashboard après modification du code
-docker compose up -d --build dashboard
-
 # Voir le statut des services
 docker compose ps
+```
+
+### Construire l'image localement (développement)
+
+Si vous modifiez le code source et souhaitez tester sans passer par GHCR :
+
+```bash
+# Remplacez temporairement dans docker-compose.yml :
+#   image: ghcr.io/florian5392/cartographie:latest
+# par :
+#   build: .
+
+docker compose up -d --build dashboard
 ```
 
 ---
