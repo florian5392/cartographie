@@ -12,7 +12,7 @@
 #         name: cloudflare_tunnel
 #
 #   Dans le tunnel Cloudflare (Zero Trust → Tunnels), pointez vers :
-#     http://dashboard:80
+#     http://cartographie-dashboard:80
 
 services:
   postgres:
@@ -49,6 +49,7 @@ services:
 
   dashboard:
     image: ghcr.io/florian5392/cartographie:latest
+    container_name: cartographie-dashboard
     depends_on:
       - postgrest
     ports:

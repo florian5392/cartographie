@@ -299,7 +299,7 @@ Le `docker-compose.yml` intègre nativement le support d'un réseau Cloudflare T
 Internet → Cloudflare → cloudflared (stack séparée)
                               │ réseau Docker externe
                               ▼
-                        dashboard:80 (cette stack)
+                        cartographie-dashboard:80 (cette stack)
 ```
 
 ### 1. Créer le tunnel dans Cloudflare Zero Trust
@@ -319,7 +319,7 @@ Toujours dans la configuration du tunnel, onglet **Public Hostnames** :
 | Subdomain | `cartographie` (ou ce que vous voulez) |
 | Domain | votre domaine géré par Cloudflare |
 | Type | `HTTP` |
-| URL | `dashboard:80` |
+| URL | `cartographie-dashboard:80` |
 
 Sauvegardez. Cloudflare génère automatiquement le certificat HTTPS.
 
