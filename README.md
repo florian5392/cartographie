@@ -368,6 +368,60 @@ Seul `dashboard` rejoint le réseau Cloudflare. `postgres` et `postgrest` resten
 
 ---
 
+## Authentification avec Cloudflare Access
+
+Cloudflare Access protège l'application **avant** que la requête atteigne votre serveur. Aucune modification du code ou du `docker-compose.yml` n'est nécessaire.
+
+### Principe
+
+```
+Utilisateur → Cloudflare Access (login) → Cloudflare Tunnel → cartographie-dashboard:80
+                     ↑
+             policy : emails autorisés,
+             Google/GitHub SSO, OTP, MFA…
+```
+
+### 1. Ajouter une application Access
+
+Dans **[one.dash.cloudflare.com](https://one.dash.cloudflare.com)** → **Access → Applications → Add an application** :
+
+1. Choisissez **Self-hosted**
+2. Renseignez :
+
+| Champ | Valeur |
+|-------|--------|
+| Application name | `Cartographie SI` |
+| Subdomain | `cartographie` (identique à votre hostname de tunnel) |
+| Domain | votre domaine |
+
+3. Cliquez **Next**
+
+### 2. Créer une policy d'accès
+
+| Champ | Valeur |
+|-------|--------|
+| Policy name | `Équipe` (ou ce que vous voulez) |
+| Action | `Allow` |
+| Include | `Emails` → listez les adresses autorisées |
+
+Alternatives à `Emails` : `GitHub`, `Google`, `Azure AD`, `OIDC`…
+
+Pour restreindre à votre organisation entière : choisissez `Everyone` dans un groupe Cloudflare Access préalablement défini.
+
+Cliquez **Next** puis **Add application**.
+
+### 3. Activer MFA (optionnel mais recommandé)
+
+Dans la policy → **Authentication** → cochez **Require MFA** pour forcer un second facteur quel que soit l'identity provider.
+
+### 4. Vérifier
+
+Accédez à `https://cartographie.votredomaine.fr` depuis un navigateur — Cloudflare redirige automatiquement vers sa page de login avant d'autoriser l'accès.
+
+> **Accès LAN direct** : si vous accédez au dashboard via l'IP locale (port 80), Cloudflare Access ne s'applique pas. Bloquez le port 80 depuis l'extérieur au niveau de votre pare-feu si nécessaire.
+
+---
+
 ## Sauvegarde et restauration
 
 ### Sauvegarder la base PostgreSQL
