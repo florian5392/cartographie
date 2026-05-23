@@ -297,9 +297,30 @@ Internet → Cloudflare → cloudflared (stack séparée)
                         dashboard:80 (cette stack)
 ```
 
-### 1. Stack cloudflared (autre dépôt / autre compose)
+### 1. Créer le tunnel dans Cloudflare Zero Trust
 
-Votre stack cloudflared doit déclarer un réseau nommé explicitement :
+1. Connectez-vous sur **[one.dash.cloudflare.com](https://one.dash.cloudflare.com)**
+2. Allez dans **Networks → Tunnels → Create a tunnel**
+3. Choisissez **Cloudflared** comme type de connecteur
+4. Donnez un nom au tunnel (ex. `cartographie`)
+5. Copiez le **token** affiché — vous en aurez besoin à l'étape suivante
+
+### 2. Configurer le hostname public
+
+Toujours dans la configuration du tunnel, onglet **Public Hostnames** :
+
+| Champ | Valeur |
+|-------|--------|
+| Subdomain | `cartographie` (ou ce que vous voulez) |
+| Domain | votre domaine géré par Cloudflare |
+| Type | `HTTP` |
+| URL | `dashboard:80` |
+
+Sauvegardez. Cloudflare génère automatiquement le certificat HTTPS.
+
+### 3. Stack cloudflared (autre dépôt / autre compose)
+
+Créez un `docker-compose.yml` dédié à cloudflared avec le token récupéré à l'étape 1 :
 
 ```yaml
 services:
@@ -308,33 +329,37 @@ services:
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - tunnel
+    restart: unless-stopped
 
 networks:
   tunnel:
-    name: cloudflare_tunnel   # ce nom est référencé dans .env
+    name: cloudflare_tunnel   # ce nom est référencé dans le .env de cartographie
 ```
 
-Dans le dashboard Cloudflare (Zero Trust → Tunnels), pointez le service public vers :
-
+```bash
+# .env de cette stack cloudflared
+CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiMTI...   # le token copié à l'étape 1
 ```
-http://dashboard:80
-```
-
-### 2. Configurer le nom du réseau
-
-Dans `.env`, ajoutez (si différent de la valeur par défaut) :
-
-```env
-CLOUDFLARE_NETWORK_NAME=cloudflare_tunnel
-```
-
-### 3. Lancer
 
 ```bash
 docker compose up -d
 ```
 
-Seul `dashboard` rejoint le réseau Cloudflare. `postgres` et `postgrest` restent sur le réseau interne uniquement.
+### 4. Configurer le nom du réseau (stack cartographie)
+
+Dans le `.env` de cartographie, vérifiez que le nom correspond :
+
+```env
+CLOUDFLARE_NETWORK_NAME=cloudflare_tunnel
+```
+
+### 5. Lancer
+
+```bash
+docker compose up -d
+```
+
+Seul `dashboard` rejoint le réseau Cloudflare. `postgres` et `postgrest` restent sur le réseau interne uniquement. Votre outil est accessible via `https://cartographie.votredomaine.fr`.
 
 ---
 
