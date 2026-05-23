@@ -48,26 +48,30 @@ Aucun build local nécessaire — le `docker-compose.yml` l'utilise directement.
 
 ## Démarrage rapide (Docker — recommandé)
 
-### 1. Récupérer le fichier de configuration
+### 1. Récupérer les fichiers de configuration
 
-Clonez le dépôt (pour avoir le `docker-compose.yml` et le script SQL d'initialisation) :
+Téléchargez uniquement les deux fichiers nécessaires (pas besoin de cloner le dépôt entier) :
 
 ```bash
-git clone https://github.com/florian5392/cartographie.git
-cd cartographie
+mkdir cartographie && cd cartographie
+
+curl -O https://raw.githubusercontent.com/florian5392/cartographie/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/florian5392/cartographie/main/scripts/init.sql
+mkdir -p scripts && mv init.sql scripts/
 ```
+
+> L'image Docker est téléchargée automatiquement depuis `ghcr.io` au démarrage.
 
 ### 2. Configurer l'environnement
 
-```bash
-cp .env.example .env
-```
-
-Éditez `.env` :
+Créez un fichier `.env` :
 
 ```env
 # Mot de passe PostgreSQL (changez en production)
 POSTGRES_PASSWORD=mon_mot_de_passe_securise
+
+# Réseau Cloudflare Tunnel (optionnel — supprimez si non utilisé)
+CLOUDFLARE_NETWORK_NAME=cloudflare_tunnel
 ```
 
 ### 3. Lancer les services
@@ -223,6 +227,7 @@ Pour **comparer deux sessions**, cochez les deux sessions souhaitées dans la li
 | Variable | Description | Défaut |
 |----------|-------------|--------|
 | `POSTGRES_PASSWORD` | Mot de passe PostgreSQL | `changeme` |
+| `CLOUDFLARE_NETWORK_NAME` | Nom du réseau Docker exposé par la stack cloudflared (optionnel) | `cloudflare_tunnel` |
 
 ---
 
