@@ -34,26 +34,44 @@ Conçu pour animer des séances de recensement du SI : saisie rapide des applica
 
 ---
 
+## Image Docker pré-construite
+
+L'image est publiée automatiquement sur **GitHub Container Registry** à chaque push sur `main` :
+
+```
+ghcr.io/florian5392/cartographie:latest
+```
+
+Aucun build local nécessaire — le `docker-compose.yml` l'utilise directement.
+
+---
+
 ## Démarrage rapide (Docker — recommandé)
 
-### 1. Cloner le dépôt
+### 1. Récupérer les fichiers de configuration
+
+Téléchargez uniquement les deux fichiers nécessaires (pas besoin de cloner le dépôt entier) :
 
 ```bash
-git clone https://github.com/florian5392/cartographie.git
-cd cartographie
+mkdir cartographie && cd cartographie
+
+curl -O https://raw.githubusercontent.com/florian5392/cartographie/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/florian5392/cartographie/main/scripts/init.sql
+mkdir -p scripts && mv init.sql scripts/
 ```
+
+> L'image Docker est téléchargée automatiquement depuis `ghcr.io` au démarrage.
 
 ### 2. Configurer l'environnement
 
-```bash
-cp .env.example .env
-```
-
-Éditez `.env` :
+Créez un fichier `.env` :
 
 ```env
 # Mot de passe PostgreSQL (changez en production)
 POSTGRES_PASSWORD=mon_mot_de_passe_securise
+
+# Réseau Cloudflare Tunnel (optionnel — supprimez si non utilisé)
+CLOUDFLARE_NETWORK_NAME=cloudflare_tunnel
 ```
 
 ### 3. Lancer les services
@@ -62,13 +80,13 @@ POSTGRES_PASSWORD=mon_mot_de_passe_securise
 docker compose up -d
 ```
 
-Trois services démarrent :
+L'image du dashboard est téléchargée automatiquement depuis `ghcr.io`. Trois services démarrent :
 
 | Service | Port | Rôle |
 |---------|------|------|
 | `postgres` | 5432 | Base de données (accessible depuis DBeaver ou tout client SQL) |
 | `postgrest` | 3001 (dev) / interne (prod) | API REST auto-générée |
-| `dashboard` | 80 | Application React |
+| `dashboard` | 80 | Application React (image GHCR) |
 
 Vérifiez que tout est sain :
 
@@ -209,6 +227,7 @@ Pour **comparer deux sessions**, cochez les deux sessions souhaitées dans la li
 | Variable | Description | Défaut |
 |----------|-------------|--------|
 | `POSTGRES_PASSWORD` | Mot de passe PostgreSQL | `changeme` |
+| `CLOUDFLARE_NETWORK_NAME` | Nom du réseau Docker exposé par la stack cloudflared (optionnel) | `cloudflare_tunnel` |
 
 ---
 
@@ -236,6 +255,9 @@ Pour **comparer deux sessions**, cochez les deux sessions souhaitées dans la li
 # Démarrer tous les services
 docker compose up -d
 
+# Mettre à jour l'image dashboard (dernière version GHCR)
+docker compose pull dashboard && docker compose up -d dashboard
+
 # Voir les logs en temps réel
 docker compose logs -f
 
@@ -248,12 +270,101 @@ docker compose down
 # Supprimer complètement (ATTENTION : efface les données)
 docker compose down -v
 
-# Rebuilder l'image dashboard après modification du code
-docker compose up -d --build dashboard
-
 # Voir le statut des services
 docker compose ps
 ```
+
+### Construire l'image localement (développement)
+
+Si vous modifiez le code source et souhaitez tester sans passer par GHCR :
+
+```bash
+# Remplacez temporairement dans docker-compose.yml :
+#   image: ghcr.io/florian5392/cartographie:latest
+# par :
+#   build: .
+
+docker compose up -d --build dashboard
+```
+
+---
+
+## Déploiement derrière Cloudflare Tunnel
+
+Le `docker-compose.yml` intègre nativement le support d'un réseau Cloudflare Tunnel externe. Le réseau est **optionnel** (requiert Docker Compose ≥ 2.22) : si la stack cloudflared n'est pas présente, le dashboard reste accessible via le port 80 local.
+
+### Principe
+
+```
+Internet → Cloudflare → cloudflared (stack séparée)
+                              │ réseau Docker externe
+                              ▼
+                        dashboard:80 (cette stack)
+```
+
+### 1. Créer le tunnel dans Cloudflare Zero Trust
+
+1. Connectez-vous sur **[one.dash.cloudflare.com](https://one.dash.cloudflare.com)**
+2. Allez dans **Networks → Tunnels → Create a tunnel**
+3. Choisissez **Cloudflared** comme type de connecteur
+4. Donnez un nom au tunnel (ex. `cartographie`)
+5. Copiez le **token** affiché — vous en aurez besoin à l'étape suivante
+
+### 2. Configurer le hostname public
+
+Toujours dans la configuration du tunnel, onglet **Public Hostnames** :
+
+| Champ | Valeur |
+|-------|--------|
+| Subdomain | `cartographie` (ou ce que vous voulez) |
+| Domain | votre domaine géré par Cloudflare |
+| Type | `HTTP` |
+| URL | `dashboard:80` |
+
+Sauvegardez. Cloudflare génère automatiquement le certificat HTTPS.
+
+### 3. Stack cloudflared (autre dépôt / autre compose)
+
+Créez un `docker-compose.yml` dédié à cloudflared avec le token récupéré à l'étape 1 :
+
+```yaml
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - tunnel
+    restart: unless-stopped
+
+networks:
+  tunnel:
+    name: cloudflare_tunnel   # ce nom est référencé dans le .env de cartographie
+```
+
+```bash
+# .env de cette stack cloudflared
+CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiMTI...   # le token copié à l'étape 1
+```
+
+```bash
+docker compose up -d
+```
+
+### 4. Configurer le nom du réseau (stack cartographie)
+
+Dans le `.env` de cartographie, vérifiez que le nom correspond :
+
+```env
+CLOUDFLARE_NETWORK_NAME=cloudflare_tunnel
+```
+
+### 5. Lancer
+
+```bash
+docker compose up -d
+```
+
+Seul `dashboard` rejoint le réseau Cloudflare. `postgres` et `postgrest` restent sur le réseau interne uniquement. Votre outil est accessible via `https://cartographie.votredomaine.fr`.
 
 ---
 
