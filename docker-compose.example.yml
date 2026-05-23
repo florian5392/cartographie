@@ -1,0 +1,76 @@
+# Exemple de déploiement avec intégration au réseau Cloudflare Tunnel
+#
+# Prérequis : un docker-compose séparé fait tourner cloudflared et expose
+# un réseau Docker externe. Exemple de stack cloudflared minimale :
+#
+#   services:
+#     cloudflared:
+#       image: cloudflare/cloudflared:latest
+#       command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+#       networks:
+#         - tunnel
+#   networks:
+#     tunnel:
+#       name: cloudflare_tunnel   # <- nom que vous référencez ci-dessous
+#
+# Utilisation :
+#   cp docker-compose.example.yml docker-compose.override.yml
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: cartographie
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # postgres n'est pas exposé sur le réseau Cloudflare
+    networks:
+      - internal
+
+  postgrest:
+    image: postgrest/postgrest:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: "postgres://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/cartographie"
+      PGRST_DB_SCHEMA: api
+      PGRST_DB_ANON_ROLE: web_anon
+      PGRST_OPENAPI_SERVER_PROXY_URI: "http://127.0.0.1:3001"
+    restart: unless-stopped
+    # postgrest uniquement sur le réseau interne
+    networks:
+      - internal
+
+  dashboard:
+    image: ghcr.io/florian5392/cartographie:latest
+    depends_on:
+      - postgrest
+    restart: unless-stopped
+    # Le dashboard est accessible depuis le réseau Cloudflare.
+    # cloudflared doit pointer vers http://dashboard:80
+    networks:
+      - internal
+      - cloudflare_tunnel
+
+volumes:
+  postgres_data:
+
+networks:
+  internal:
+    driver: bridge
+
+  cloudflare_tunnel:
+    external: true
+    # Doit correspondre au `name:` déclaré dans la stack cloudflared
+    name: ${CLOUDFLARE_NETWORK_NAME:-cloudflare_tunnel}

@@ -284,6 +284,55 @@ docker compose up -d --build dashboard
 
 ---
 
+## Déploiement derrière Cloudflare Tunnel
+
+Le fichier `docker-compose.example.yml` montre comment connecter le dashboard au réseau Docker d'une stack **cloudflared** existante, sans exposer de port public.
+
+### Principe
+
+```
+Internet → Cloudflare → cloudflared (stack séparée)
+                              │ réseau Docker externe
+                              ▼
+                        dashboard:80 (cette stack)
+```
+
+### 1. Stack cloudflared (autre dépôt / autre compose)
+
+Votre stack cloudflared doit déclarer un réseau nommé explicitement :
+
+```yaml
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - tunnel
+
+networks:
+  tunnel:
+    name: cloudflare_tunnel   # ce nom est référencé côté cartographie
+```
+
+Dans le dashboard de Cloudflare (Zero Trust → Tunnels), configurez le service public vers :
+
+```
+http://dashboard:80
+```
+
+### 2. Lancer la stack cartographie avec l'override
+
+```bash
+# Définir le nom du réseau Cloudflare si différent de "cloudflare_tunnel"
+export CLOUDFLARE_NETWORK_NAME=cloudflare_tunnel
+
+docker compose -f docker-compose.yml -f docker-compose.example.yml up -d
+```
+
+Seul le service `dashboard` rejoint le réseau Cloudflare. `postgres` et `postgrest` restent sur le réseau interne uniquement.
+
+---
+
 ## Sauvegarde et restauration
 
 ### Sauvegarder la base PostgreSQL
