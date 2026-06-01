@@ -93,14 +93,29 @@ export default function ConsolidatedView({ onBack }) {
 
   // Sync edges
   useEffect(() => {
-    setEdges(filteredFlux.map(f => ({
-      id: f.id,
-      source: f.sourceId,
-      target: f.cibleId,
-      type: 'fluxEdge',
-      data: { flux: f },
-      deletable: false,
-    })))
+    const pairCount = {}
+    const pairIndex = {}
+    filteredFlux.forEach(f => { const k = `${f.sourceId}→${f.cibleId}`; pairCount[k] = (pairCount[k] || 0) + 1 })
+    filteredFlux.forEach(f => { const k = `${f.sourceId}→${f.cibleId}`; pairIndex[k] = pairIndex[k] || 0; f._pairIndex = pairIndex[k]; f._pairTotal = pairCount[k]; pairIndex[k]++ })
+
+    setEdges(filteredFlux.map(f => {
+      const color  = f.color || '#60a5fa'
+      const total  = f._pairTotal || 1
+      const idx    = f._pairIndex || 0
+      return {
+        id: f.id,
+        source: f.sourceId,
+        target: f.cibleId,
+        type: 'fluxEdge',
+        data: {
+          flux: f,
+          curvature:   total > 1 ? 0.1 + (idx / (total - 1)) * 0.6 : 0.25,
+          labelOffset: total > 1 ? (idx - (total - 1) / 2) * 18 : 0,
+        },
+        deletable: false,
+        markerEnd: { type: 'arrowclosed', color, width: 20, height: 20 },
+      }
+    }))
   }, [filteredFlux, setEdges])
 
   // Highlighting

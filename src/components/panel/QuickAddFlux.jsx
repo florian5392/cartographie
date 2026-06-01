@@ -1,38 +1,36 @@
 import { useState, useEffect } from 'react'
 import useSessionStore from '../../stores/sessionStore'
 
-const FLUX_TYPES = ['API', 'Fichier', 'BDD', 'EDI', 'Manuel', 'Autre']
-const FREQUENCES  = ['Temps réel', 'Quotidien', 'Hebdomadaire', 'Ponctuel']
+const FREQUENCES = ['Temps réel', 'Quotidien', 'Hebdomadaire', 'Ponctuel']
 
-const TYPE_ACTIVE = {
-  API:    'bg-blue-700 border-blue-500 text-blue-100',
-  Fichier:'bg-yellow-700 border-yellow-600 text-yellow-100',
-  BDD:    'bg-purple-700 border-purple-500 text-purple-100',
-  EDI:    'bg-green-700 border-green-500 text-green-100',
-  Manuel: 'bg-gray-600 border-gray-400 text-gray-100',
-  Autre:  'bg-gray-600 border-gray-400 text-gray-100',
-}
+const PALETTE = [
+  '#60a5fa', // bleu
+  '#34d399', // vert émeraude
+  '#f472b6', // rose
+  '#facc15', // jaune
+  '#fb923c', // orange
+  '#a78bfa', // violet
+  '#22d3ee', // cyan
+  '#f87171', // rouge
+  '#4ade80', // vert clair
+  '#e879f9', // fuchsia
+  '#94a3b8', // gris ardoise
+  '#ffffff', // blanc
+]
 
-const TYPE_BADGE = {
-  API:    'bg-blue-900 text-blue-300',
-  Fichier:'bg-yellow-900 text-yellow-300',
-  BDD:    'bg-purple-900 text-purple-300',
-  EDI:    'bg-green-900 text-green-300',
-  Manuel: 'bg-gray-700 text-gray-300',
-  Autre:  'bg-gray-700 text-gray-300',
-}
+const DEFAULT_COLOR = '#60a5fa'
 
 const DEFAULT = {
-  sourceId: '', cibleId: '', type: 'API', label: '',
+  sourceId: '', cibleId: '', color: DEFAULT_COLOR, label: '',
   description: '', frequence: 'Temps réel', volume: '', critique: false,
 }
 
 export default function QuickAddFlux({ readOnly }) {
   const { applications, flux, session, addFlux, updateFlux, removeFlux } = useSessionStore()
-  const [form, setForm]             = useState(DEFAULT)
-  const [error, setError]           = useState(null)
-  const [flash, setFlash]           = useState(null)
-  const [editingFlux, setEditingFlux]     = useState(null)
+  const [form, setForm]                     = useState(DEFAULT)
+  const [error, setError]                   = useState(null)
+  const [flash, setFlash]                   = useState(null)
+  const [editingFlux, setEditingFlux]       = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   useEffect(() => {
@@ -40,7 +38,7 @@ export default function QuickAddFlux({ readOnly }) {
       setForm({
         sourceId:    editingFlux.sourceId    || '',
         cibleId:     editingFlux.cibleId     || '',
-        type:        editingFlux.type        || 'API',
+        color:       editingFlux.color       || DEFAULT_COLOR,
         label:       editingFlux.label       || '',
         description: editingFlux.description || '',
         frequence:   editingFlux.frequence   || 'Temps réel',
@@ -76,7 +74,7 @@ export default function QuickAddFlux({ readOnly }) {
       setFlash('updated')
     } else {
       addFlux({ ...form, id: crypto.randomUUID(), sessionId: session?.id })
-      setForm(f => ({ ...DEFAULT, type: f.type, frequence: f.frequence }))
+      setForm(f => ({ ...DEFAULT, color: f.color, frequence: f.frequence }))
       setFlash('added')
     }
     setTimeout(() => setFlash(null), 1500)
@@ -88,7 +86,7 @@ export default function QuickAddFlux({ readOnly }) {
     if (editingFlux?.id === id) setEditingFlux(null)
   }
 
-  const cibles = applications.filter(a => a.id !== form.sourceId)
+  const cibles  = applications.filter(a => a.id !== form.sourceId)
   const appName = (id) => applications.find(a => a.id === id)?.nom || '?'
 
   return (
@@ -130,28 +128,56 @@ export default function QuickAddFlux({ readOnly }) {
           </select>
         </div>
 
-        {/* Type — pills colorés */}
+        {/* Couleur du flux */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Type de flux</label>
-          <div className="flex flex-wrap gap-1">
-            {FLUX_TYPES.map(t => (
+          <label className="block text-xs text-gray-400 mb-1.5">Couleur du flux</label>
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {PALETTE.map(c => (
               <button
-                key={t}
+                key={c}
                 type="button"
-                onClick={() => setForm(f => ({ ...f, type: t }))}
-                className={`px-2.5 py-1 rounded text-xs border font-medium transition-colors ${
-                  form.type === t
-                    ? TYPE_ACTIVE[t]
-                    : 'bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-200'
-                }`}
-              >
-                {t}
-              </button>
+                onClick={() => setForm(f => ({ ...f, color: c }))}
+                title={c}
+                className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none"
+                style={{
+                  backgroundColor: c,
+                  borderColor: form.color === c ? '#fff' : 'transparent',
+                  boxShadow: form.color === c ? `0 0 0 1px ${c}` : 'none',
+                }}
+              />
             ))}
+            {/* Sélecteur libre */}
+            <label
+              className="w-6 h-6 rounded-full border-2 border-dashed border-gray-500 hover:border-gray-300 cursor-pointer flex items-center justify-center transition-colors overflow-hidden"
+              title="Couleur personnalisée"
+              style={{
+                borderColor: !PALETTE.includes(form.color) ? '#fff' : undefined,
+              }}
+            >
+              <input
+                type="color"
+                value={form.color}
+                onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
+                className="w-8 h-8 opacity-0 absolute cursor-pointer"
+              />
+              <span
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: !PALETTE.includes(form.color) ? form.color : 'transparent' }}
+              />
+              {PALETTE.includes(form.color) && <span className="text-gray-400 text-[10px]">+</span>}
+            </label>
+          </div>
+          {/* Aperçu */}
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <div className="flex-1 h-px" style={{ backgroundColor: form.color }} />
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: form.color }}
+            />
           </div>
         </div>
 
-        {/* Fréquence — boutons */}
+        {/* Fréquence */}
         <div>
           <label className="block text-xs text-gray-400 mb-1">Fréquence</label>
           <div className="flex flex-wrap gap-1">
@@ -234,7 +260,7 @@ export default function QuickAddFlux({ readOnly }) {
           </button>
         )}
 
-        {flash === 'added'   && <div className="text-green-400 text-xs text-center">✓ Flux ajouté — type et fréquence conservés</div>}
+        {flash === 'added'   && <div className="text-green-400 text-xs text-center">✓ Flux ajouté — couleur et fréquence conservées</div>}
         {flash === 'updated' && <div className="text-blue-400 text-xs text-center">✓ Modification enregistrée</div>}
       </form>
 
@@ -274,14 +300,16 @@ export default function QuickAddFlux({ readOnly }) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 min-w-0">
+                    {/* Pastille couleur */}
+                    <span
+                      className="shrink-0 w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: f.color || DEFAULT_COLOR }}
+                    />
                     <span className="text-gray-300 truncate flex-1 min-w-0">
                       <span className="text-gray-400">{appName(f.sourceId)}</span>
                       <span className="text-gray-600 mx-1">→</span>
                       <span className="text-gray-400">{appName(f.cibleId)}</span>
                       {f.label && <span className="text-gray-500 ml-1">· {f.label}</span>}
-                    </span>
-                    <span className={`shrink-0 px-1 py-0.5 rounded text-[10px] ${TYPE_BADGE[f.type] || 'bg-gray-700 text-gray-300'}`}>
-                      {f.type}
                     </span>
                     <button
                       onClick={() => { setEditingFlux(f); setConfirmDeleteId(null) }}

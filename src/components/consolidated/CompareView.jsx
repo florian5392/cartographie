@@ -162,7 +162,7 @@ export default function CompareView({ sessions, onBack }) {
                             <span className="text-red-600 mx-1.5">→</span>
                             <span className="font-medium">{appName(f.cibleId)}</span>
                             {f.label && <span className="text-red-500 ml-1.5">· {f.label}</span>}
-                            <span className="ml-2 text-red-700 text-[10px]">{f.type}</span>
+                            {f.color && <span className="ml-2 inline-block w-2 h-2 rounded-full" style={{ backgroundColor: f.color }} />}
                           </div>
                         ))}
                       </>
@@ -180,7 +180,7 @@ export default function CompareView({ sessions, onBack }) {
                             <span className="text-green-600 mx-1.5">→</span>
                             <span className="font-medium">{appName(f.cibleId)}</span>
                             {f.label && <span className="text-green-500 ml-1.5">· {f.label}</span>}
-                            <span className="ml-2 text-green-700 text-[10px]">{f.type}</span>
+                            {f.color && <span className="ml-2 inline-block w-2 h-2 rounded-full" style={{ backgroundColor: f.color }} />}
                           </div>
                         ))}
                       </>
