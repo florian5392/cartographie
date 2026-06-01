@@ -95,8 +95,9 @@ export default function ConsolidatedView({ onBack }) {
   useEffect(() => {
     const pairCount = {}
     const pairIndex = {}
-    filteredFlux.forEach(f => { const k = `${f.sourceId}→${f.cibleId}`; pairCount[k] = (pairCount[k] || 0) + 1 })
-    filteredFlux.forEach(f => { const k = `${f.sourceId}→${f.cibleId}`; pairIndex[k] = pairIndex[k] || 0; f._pairIndex = pairIndex[k]; f._pairTotal = pairCount[k]; pairIndex[k]++ })
+    const pairKey = f => [f.sourceId, f.cibleId].sort().join('↔')
+    filteredFlux.forEach(f => { const k = pairKey(f); pairCount[k] = (pairCount[k] || 0) + 1 })
+    filteredFlux.forEach(f => { const k = pairKey(f); pairIndex[k] = pairIndex[k] || 0; f._pairIndex = pairIndex[k]; f._pairTotal = pairCount[k]; pairIndex[k]++ })
 
     setEdges(filteredFlux.map(f => {
       const color  = f.color || '#60a5fa'
@@ -109,8 +110,8 @@ export default function ConsolidatedView({ onBack }) {
         type: 'fluxEdge',
         data: {
           flux: f,
-          curvature:   total > 1 ? 0.1 + (idx / (total - 1)) * 0.6 : 0.25,
-          labelOffset: total > 1 ? (idx - (total - 1) / 2) * 18 : 0,
+          curvature:   total > 1 ? 0.15 + (idx / (total - 1)) * 0.45 : 0.25,
+          labelOffset: total > 1 ? (idx - (total - 1) / 2) * 20 : 0,
         },
         deletable: false,
         markerEnd: { type: 'arrowclosed', color, width: 20, height: 20 },
