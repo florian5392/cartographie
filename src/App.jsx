@@ -6,6 +6,8 @@ import ConsolidatedView from './components/consolidated/ConsolidatedView'
 import ReferentielTable from './components/consolidated/ReferentielTable'
 import CompareView from './components/consolidated/CompareView'
 
+const VERSION = __APP_VERSION__
+
 export default function App() {
   const { session, demoMode, initStore } = useSessionStore()
   const [currentView, setCurrentView] = useState(null)
@@ -21,6 +23,9 @@ export default function App() {
           Mode démo
         </div>
       )}
+      <div className="fixed bottom-2 left-2 z-50 text-gray-600 text-[10px] select-none">
+        v{VERSION}
+      </div>
       <SessionManager />
     </div>
   )
@@ -41,6 +46,9 @@ export default function App() {
           Mode démo
         </div>
       )}
+      <div className="fixed bottom-2 left-2 z-50 text-gray-600 text-[10px] select-none">
+        v{VERSION}
+      </div>
       <SessionSelector onViewChange={setCurrentView} />
     </div>
   )
