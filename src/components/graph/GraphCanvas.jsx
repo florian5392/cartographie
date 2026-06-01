@@ -199,17 +199,38 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, flowR
 
   // ── Sync edges ──
   useEffect(() => {
+    // Count how many edges share the same source+target pair to offset parallel edges
+    const pairCount = {}
+    const pairIndex = {}
+    flux.forEach(f => {
+      const key = `${f.sourceId}→${f.cibleId}`
+      pairCount[key] = (pairCount[key] || 0) + 1
+    })
+    flux.forEach(f => {
+      const key = `${f.sourceId}→${f.cibleId}`
+      pairIndex[key] = (pairIndex[key] || 0)
+      f._pairIndex = pairIndex[key]
+      f._pairTotal = pairCount[key]
+      pairIndex[key]++
+    })
+
     setEdges(
       flux.map(f => {
         const stroke = (FLUX_STYLES[f.type] || FLUX_STYLES.Autre).stroke
+        const total = f._pairTotal || 1
+        const idx   = f._pairIndex || 0
+        // Spread parallel edges: curvature varies around 0.25
+        const curvature = total > 1 ? 0.1 + (idx / (total - 1)) * 0.6 : 0.25
+        // Vertical label offset so labels don't stack
+        const labelOffset = total > 1 ? (idx - (total - 1) / 2) * 18 : 0
         return {
           id: f.id,
           source: f.sourceId,
           target: f.cibleId,
           type: 'fluxEdge',
-          data: { flux: f },
+          data: { flux: f, curvature, labelOffset },
           deletable: !readOnly,
-          markerEnd: { type: MarkerType.ArrowClosed, color: stroke, width: 16, height: 16 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: stroke, width: 20, height: 20 },
           animated: true,
         }
       }),
