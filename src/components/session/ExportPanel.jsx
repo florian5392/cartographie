@@ -28,12 +28,12 @@ function generateMarkdown({ session, applications, flux, etablissements, deploie
   }
 
   lines.push(`\n## Flux (${flux.length})`)
-  lines.push('\n| Source | Cible | Type | Libellé | Fréquence | Critique |')
-  lines.push('|--------|-------|------|---------|-----------|----------|')
+  lines.push('\n| Source | Cible | Couleur | Libellé | Fréquence | Critique |')
+  lines.push('|--------|-------|---------|---------|-----------|----------|')
   for (const f of flux) {
     const src = applications.find((a) => a.id === f.sourceId)?.nom || f.sourceId
     const tgt = applications.find((a) => a.id === f.cibleId)?.nom || f.cibleId
-    lines.push(`| ${src} | ${tgt} | ${f.type || '—'} | ${f.label || '—'} | ${f.frequence || '—'} | ${f.critique ? 'Oui' : 'Non'} |`)
+    lines.push(`| ${src} | ${tgt} | ${f.color || '—'} | ${f.label || '—'} | ${f.frequence || '—'} | ${f.critique ? 'Oui' : 'Non'} |`)
   }
 
   if (etablissements.length > 0) {

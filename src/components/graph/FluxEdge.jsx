@@ -1,5 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath } from 'reactflow'
-import { FLUX_STYLES } from './fluxStyles'
+import { DEFAULT_FLUX_COLOR, FLUX_STROKE_WIDTH } from './fluxStyles'
 
 export default function FluxEdge({
   id,
@@ -12,7 +12,7 @@ export default function FluxEdge({
   const flux        = data?.flux || {}
   const curvature   = data?.curvature ?? 0.25
   const labelOffset = data?.labelOffset ?? 0
-  const style       = FLUX_STYLES[flux.type] || FLUX_STYLES.Autre
+  const color       = flux.color || DEFAULT_FLUX_COLOR
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition,
@@ -25,16 +25,13 @@ export default function FluxEdge({
     .join(' — ')
 
   const edgeStyle = {
-    stroke:          style.stroke,
-    strokeWidth:     style.strokeWidth,
-    strokeDasharray: style.strokeDasharray,
-    // White halo behind the stroke for contrast against dark node backgrounds
-    filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.8))',
+    stroke:      color,
+    strokeWidth: FLUX_STROKE_WIDTH,
+    filter:      'drop-shadow(0 0 2px rgba(0,0,0,0.8))',
   }
 
   return (
     <>
-      {/* Invisible wider hit-area path for easier hover */}
       <path
         d={edgePath}
         fill="none"
@@ -59,20 +56,22 @@ export default function FluxEdge({
           }}
           className="nodrag nopan"
         >
-          <div
-            title={tooltip}
-            className="px-1.5 py-0.5 rounded text-xs font-medium cursor-default select-none"
-            style={{
-              backgroundColor: '#0f172a',
-              border: `1.5px solid ${style.stroke}`,
-              color: style.stroke,
-              fontSize: '10px',
-              boxShadow: `0 0 6px ${style.stroke}55, 0 2px 4px rgba(0,0,0,0.7)`,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {flux.label || flux.type || 'Flux'}
-          </div>
+          {flux.label && (
+            <div
+              title={tooltip}
+              className="px-1.5 py-0.5 rounded text-xs font-medium cursor-default select-none"
+              style={{
+                backgroundColor: '#0f172a',
+                border: `1.5px solid ${color}`,
+                color,
+                fontSize: '10px',
+                boxShadow: `0 0 6px ${color}55, 0 2px 4px rgba(0,0,0,0.7)`,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {flux.label}
+            </div>
+          )}
         </div>
       </EdgeLabelRenderer>
     </>

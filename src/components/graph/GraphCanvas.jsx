@@ -11,7 +11,7 @@ import 'reactflow/dist/style.css'
 import useSessionStore from '../../stores/sessionStore'
 import AppNode from './AppNode'
 import FluxEdge from './FluxEdge'
-import { FLUX_STYLES } from './fluxStyles'
+import { DEFAULT_FLUX_COLOR } from './fluxStyles'
 
 // ─── Column header node ──────────────────────────────────────────────────────
 
@@ -216,7 +216,7 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, flowR
 
     setEdges(
       flux.map(f => {
-        const stroke = (FLUX_STYLES[f.type] || FLUX_STYLES.Autre).stroke
+        const stroke = f.color || DEFAULT_FLUX_COLOR
         const total = f._pairTotal || 1
         const idx   = f._pairIndex || 0
         // Spread parallel edges: curvature varies around 0.25
