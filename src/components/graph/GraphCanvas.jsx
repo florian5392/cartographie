@@ -135,7 +135,7 @@ function resolvePositions(apps, stored, session, deploiements, etablissements) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, flowRef, readOnly = false }) {
-  const { applications, flux, positions, updatePositions, removeApplication, removeFlux,
+  const { applications, flux, positions, updatePositions, removeApplication, removeFlux, updateFlux,
           session, deploiements, etablissements } = useSessionStore()
 
   const [nodes, setNodes, onNodesChange] = useNodesState([])
@@ -230,14 +230,20 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, flowR
           source: f.sourceId,
           target: f.cibleId,
           type: 'fluxEdge',
-          data: { flux: f, curvature, labelOffset },
+          data: {
+            flux: f,
+            curvature,
+            labelOffset,
+            readOnly,
+            onUpdate: readOnly ? undefined : (changes) => updateFlux(f.id, changes),
+          },
           deletable: !readOnly,
           markerEnd: { type: MarkerType.ArrowClosed, color: stroke, width: 20, height: 20 },
           animated: true,
         }
       }),
     )
-  }, [flux, readOnly, setEdges])
+  }, [flux, readOnly, updateFlux, setEdges])
 
   // ── Highlighting ──
   const connectedInfo = useMemo(() => {
