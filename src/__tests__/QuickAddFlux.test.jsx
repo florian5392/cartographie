@@ -103,22 +103,23 @@ describe('QuickAddFlux — soumission', () => {
     })
   })
 
-  it('conserve le type sélectionné après soumission', async () => {
-    mockStore()
+  it('conserve la couleur sélectionnée après soumission', async () => {
+    const addFlux = vi.fn()
+    mockStore({ addFlux })
     const user = userEvent.setup()
     render(<QuickAddFlux />)
 
-    // Sélectionner le type "Fichier"
-    await user.click(screen.getByRole('button', { name: 'Fichier' }))
+    // Cliquer sur la deuxième couleur de la palette (#34d399 — vert)
+    const colorButtons = screen.getAllByRole('button').filter(b => b.title?.startsWith('#'))
+    await user.click(colorButtons[1])
 
     const [sourceSelect, cibleSelect] = screen.getAllByRole('combobox')
     await user.selectOptions(sourceSelect, APP_A.id)
     await user.selectOptions(cibleSelect, APP_B.id)
     await user.click(screen.getByRole('button', { name: /tracer/i }))
 
-    // Après soumission, le bouton "Fichier" doit rester actif
-    const fichierBtn = screen.getByRole('button', { name: 'Fichier' })
-    expect(fichierBtn.className).toMatch(/bg-yellow/)
+    // La couleur choisie doit être transmise à addFlux
+    expect(addFlux.mock.calls[0][0]).toMatchObject({ color: '#34d399' })
   })
 
   it('conserve la fréquence sélectionnée après soumission', async () => {
