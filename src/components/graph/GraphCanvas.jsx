@@ -199,15 +199,17 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, flowR
 
   // ── Sync edges ──
   useEffect(() => {
-    // Count how many edges share the same source+target pair to offset parallel edges
+    // Group edges by unordered pair (A↔B) to handle both parallel AND bidirectional edges
     const pairCount = {}
     const pairIndex = {}
+    // normalise la clé : même clé pour A→B et B→A
+    const pairKey = f => [f.sourceId, f.cibleId].sort().join('↔')
     flux.forEach(f => {
-      const key = `${f.sourceId}→${f.cibleId}`
+      const key = pairKey(f)
       pairCount[key] = (pairCount[key] || 0) + 1
     })
     flux.forEach(f => {
-      const key = `${f.sourceId}→${f.cibleId}`
+      const key = pairKey(f)
       pairIndex[key] = (pairIndex[key] || 0)
       f._pairIndex = pairIndex[key]
       f._pairTotal = pairCount[key]
@@ -219,10 +221,10 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, flowR
         const stroke = f.color || DEFAULT_FLUX_COLOR
         const total = f._pairTotal || 1
         const idx   = f._pairIndex || 0
-        // Spread parallel edges: curvature varies around 0.25
-        const curvature = total > 1 ? 0.1 + (idx / (total - 1)) * 0.6 : 0.25
-        // Vertical label offset so labels don't stack
-        const labelOffset = total > 1 ? (idx - (total - 1) / 2) * 18 : 0
+        // Étale les courbes : curvature varie de 0.15 à 0.6 selon l'index
+        const curvature = total > 1 ? 0.15 + (idx / (total - 1)) * 0.45 : 0.25
+        // Décale les libellés perpendiculairement à la courbe
+        const labelOffset = total > 1 ? (idx - (total - 1) / 2) * 20 : 0
         return {
           id: f.id,
           source: f.sourceId,
