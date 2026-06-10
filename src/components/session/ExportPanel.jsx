@@ -21,9 +21,14 @@ export default function ExportPanel({ onClose }) {
       ? `.react-flow, .react-flow__background, .react-flow__pane,
          .react-flow__renderer, .react-flow__container,
          .react-flow__viewport { background-color: #ffffff !important; background: #ffffff !important; }
-         .react-flow__node { color: #111827 !important; }
-         .react-flow__edge-label { color: #111827 !important; }`
-      : ''
+         .react-flow__node > div { box-shadow: none !important; }
+         .react-flow__edge path { filter: none !important; }
+         .react-flow__minimap { display: none !important; }
+         .react-flow__controls { display: none !important; }
+         .react-flow__attribution { display: none !important; }`
+      : `.react-flow__minimap { display: none !important; }
+         .react-flow__controls { display: none !important; }
+         .react-flow__attribution { display: none !important; }`
     document.head.appendChild(styleEl)
 
     try {
