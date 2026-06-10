@@ -2,7 +2,7 @@ import { useState } from 'react'
 import useSessionStore from '../../stores/sessionStore'
 
 export default function ExportPanel({ onClose }) {
-  const { session, applications, flux, positions, etablissements, deploiements } = useSessionStore()
+  const { session, applications, flux } = useSessionStore()
   const [exporting, setExporting] = useState(false)
   const [lightBg, setLightBg] = useState(false)
 
@@ -82,19 +82,6 @@ export default function ExportPanel({ onClose }) {
     }
   }
 
-  const handleExportJSON = () => {
-    const data = { session, applications, flux, positions, etablissements, deploiements }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `cartographie-${slug}-${Date.now()}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
@@ -145,16 +132,6 @@ export default function ExportPanel({ onClose }) {
             </button>
           </div>
 
-          <button
-            onClick={handleExportJSON}
-            className="w-full flex items-center gap-3 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors"
-          >
-            <span className="text-2xl">📦</span>
-            <div className="text-left">
-              <div className="font-medium">Export JSON</div>
-              <div className="text-xs text-gray-400">Données complètes (import possible)</div>
-            </div>
-          </button>
         </div>
 
         <div className="mt-5 text-xs text-gray-500 text-center">
