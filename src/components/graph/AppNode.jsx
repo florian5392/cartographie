@@ -61,8 +61,16 @@ export default function AppNode({ data, selected }) {
         </button>
       )}
       <Handle
+        id="target-top"
         type="target"
         position={Position.Top}
+        className="!bg-gray-600 !border-gray-500 !w-3 !h-3 !opacity-0 hover:!opacity-100 transition-opacity"
+      />
+      <Handle
+        id="target-bottom"
+        type="target"
+        position={Position.Bottom}
+        style={{ left: '35%' }}
         className="!bg-gray-600 !border-gray-500 !w-3 !h-3 !opacity-0 hover:!opacity-100 transition-opacity"
       />
 
@@ -128,6 +136,14 @@ export default function AppNode({ data, selected }) {
       </div>
 
       <Handle
+        id="source-top"
+        type="source"
+        position={Position.Top}
+        style={{ left: '65%' }}
+        className="!bg-gray-600 !border-gray-500 !w-3 !h-3 !opacity-0 hover:!opacity-100 transition-opacity"
+      />
+      <Handle
+        id="source-bottom"
         type="source"
         position={Position.Bottom}
         className="!bg-gray-600 !border-gray-500 !w-3 !h-3 !opacity-0 hover:!opacity-100 transition-opacity"

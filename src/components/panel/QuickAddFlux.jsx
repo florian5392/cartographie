@@ -23,6 +23,7 @@ const DEFAULT_COLOR = '#60a5fa'
 const DEFAULT = {
   sourceId: '', cibleId: '', color: DEFAULT_COLOR, label: '',
   description: '', frequence: 'Temps réel', volume: '', critique: false,
+  sourceHandle: 'source-bottom', targetHandle: 'target-top',
 }
 
 export default function QuickAddFlux({ readOnly }) {
@@ -36,14 +37,16 @@ export default function QuickAddFlux({ readOnly }) {
   useEffect(() => {
     if (editingFlux) {
       setForm({
-        sourceId:    editingFlux.sourceId    || '',
-        cibleId:     editingFlux.cibleId     || '',
-        color:       editingFlux.color       || DEFAULT_COLOR,
-        label:       editingFlux.label       || '',
-        description: editingFlux.description || '',
-        frequence:   editingFlux.frequence   || 'Temps réel',
-        volume:      editingFlux.volume      || '',
-        critique:    editingFlux.critique    || false,
+        sourceId:     editingFlux.sourceId     || '',
+        cibleId:      editingFlux.cibleId      || '',
+        color:        editingFlux.color        || DEFAULT_COLOR,
+        label:        editingFlux.label        || '',
+        description:  editingFlux.description  || '',
+        frequence:    editingFlux.frequence    || 'Temps réel',
+        volume:       editingFlux.volume       || '',
+        critique:     editingFlux.critique     || false,
+        sourceHandle: editingFlux.sourceHandle || 'source-bottom',
+        targetHandle: editingFlux.targetHandle || 'target-top',
       })
     } else {
       setForm(DEFAULT)
@@ -126,6 +129,54 @@ export default function QuickAddFlux({ readOnly }) {
             <option value="">— Application cible —</option>
             {cibles.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
           </select>
+        </div>
+
+        {/* Points de connexion */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Sortie (source)</label>
+            <div className="flex gap-1">
+              {[
+                { value: 'source-top',    label: '↑ Haut' },
+                { value: 'source-bottom', label: '↓ Bas' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, sourceHandle: opt.value }))}
+                  className={`flex-1 py-1 rounded text-xs border transition-colors ${
+                    form.sourceHandle === opt.value
+                      ? 'bg-gray-600 border-gray-400 text-white'
+                      : 'bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Entrée (cible)</label>
+            <div className="flex gap-1">
+              {[
+                { value: 'target-top',    label: '↑ Haut' },
+                { value: 'target-bottom', label: '↓ Bas' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, targetHandle: opt.value }))}
+                  className={`flex-1 py-1 rounded text-xs border transition-colors ${
+                    form.targetHandle === opt.value
+                      ? 'bg-gray-600 border-gray-400 text-white'
+                      : 'bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Couleur du flux */}
