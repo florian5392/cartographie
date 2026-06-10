@@ -59,3 +59,14 @@ body {
 .column-header-node .react-flow__handle {
   display: none !important;
 }
+
+/* Print: force light background */
+@media print {
+  body,
+  .react-flow__background,
+  .react-flow__renderer,
+  .react-flow__pane {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
+}
