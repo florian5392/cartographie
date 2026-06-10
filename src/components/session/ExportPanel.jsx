@@ -13,7 +13,6 @@ export default function ExportPanel({ onClose }) {
     if (!flowEl) { alert('Impossible de capturer le graphe.'); return null }
 
     const bgColor = lightBg ? '#ffffff' : '#111827'
-    const nodeTextColor = lightBg ? '#111827' : null
 
     // Force background on all ReactFlow layers via !important so html-to-image
     // picks up the correct computed style when inlining CSS.
