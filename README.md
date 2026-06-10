@@ -166,10 +166,12 @@ Le dev server proxifie `/api/*` vers PostgREST sur `http://localhost:3001`.
 
 **Onglet Flux** (F2) :
 - Sélectionnez **Source** puis **Cible** dans les dropdowns
+- Choisissez le **point de sortie** (↑ Haut / ↓ Bas) sur le bloc source et le **point d'entrée** (↑ Haut / ↓ Bas) sur le bloc cible
 - Choisissez le **type de flux** (pill coloré) et la **fréquence**
 - Cliquez **Tracer** (ou Entrée)
 - Le type et la fréquence sont mémorisés pour l'entrée suivante
-- Vous pouvez aussi **connecter deux nœuds à la souris** en tirant depuis le bas d'un nœud vers le haut d'un autre
+- Vous pouvez aussi **connecter deux nœuds à la souris** en tirant depuis un handle d'un nœud vers un handle d'un autre
+- La **courbe du flux** est déplaçable (poignée au milieu de la flèche au survol) ; le **libellé** est déplaçable indépendamment
 
 **Onglet Établissements** (F3, multi-sites uniquement) :
 - Créez les établissements avec leur couleur
@@ -199,11 +201,12 @@ Cliquez **Présenter** dans la barre du haut (ou F11) :
 ### Exporter les résultats
 
 Cliquez **Exporter** dans la barre du haut :
+- **Fond clair (impression)** : toggle pour basculer le fond blanc (utile pour impression papier)
 - **PNG** : capture bitmap du graphe tel qu'affiché
 - **SVG** : export vectoriel (qualité illimitée, éditable)
 - **Markdown** : rapport complet — en-tête session, tableau des applications, tableau des flux, KPIs
 - **JSON** : données brutes complètes (applications + flux + positions, réimportables)
-- **Imprimer** : dialogue impression système
+- **Imprimer** : dialogue impression système (fond blanc automatique via CSS print)
 
 ### Clôturer la session
 
