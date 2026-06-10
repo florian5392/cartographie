@@ -98,13 +98,20 @@ export default function ExportPanel({ onClose }) {
       const { toPng } = await import('html-to-image')
       const flowEl = document.querySelector('.react-flow')
       if (!flowEl) { alert('Impossible de capturer le graphe.'); return }
-      const dataUrl = await toPng(flowEl, { backgroundColor: lightBg ? '#ffffff' : '#111827', quality: 1 })
-      const a = document.createElement('a')
-      a.href = dataUrl
-      a.download = `cartographie-${slug}-${Date.now()}.png`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      const bgColor = lightBg ? '#ffffff' : '#111827'
+      const prevBg = flowEl.style.background
+      flowEl.style.background = bgColor
+      try {
+        const dataUrl = await toPng(flowEl, { backgroundColor: bgColor, quality: 1 })
+        const a = document.createElement('a')
+        a.href = dataUrl
+        a.download = `cartographie-${slug}-${Date.now()}.png`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      } finally {
+        flowEl.style.background = prevBg
+      }
     } catch (err) {
       console.error('PNG export failed', err)
       alert('Export PNG échoué. Essayez avec Ctrl+P pour imprimer.')
@@ -119,7 +126,12 @@ export default function ExportPanel({ onClose }) {
       const { toSvg } = await import('html-to-image')
       const flowEl = document.querySelector('.react-flow')
       if (!flowEl) { alert('Impossible de capturer le graphe.'); return }
-      const dataUrl = await toSvg(flowEl, { backgroundColor: lightBg ? '#ffffff' : '#111827' })
+      const bgColor = lightBg ? '#ffffff' : '#111827'
+      const prevBg = flowEl.style.background
+      flowEl.style.background = bgColor
+      const dataUrl = await toSvg(flowEl, { backgroundColor: bgColor }).finally(() => {
+        flowEl.style.background = prevBg
+      })
       const a = document.createElement('a')
       a.href = dataUrl
       a.download = `cartographie-${slug}-${Date.now()}.svg`
