@@ -78,6 +78,7 @@ function generateMarkdown({ session, applications, flux, etablissements, deploie
 export default function ExportPanel({ onClose }) {
   const { session, applications, flux, positions, etablissements, deploiements } = useSessionStore()
   const [exporting, setExporting] = useState(false)
+  const [lightBg, setLightBg] = useState(false)
 
   const handleExportJSON = () => {
     const data = { session, applications, flux, positions, etablissements, deploiements }
@@ -97,7 +98,7 @@ export default function ExportPanel({ onClose }) {
       const { toPng } = await import('html-to-image')
       const flowEl = document.querySelector('.react-flow')
       if (!flowEl) { alert('Impossible de capturer le graphe.'); return }
-      const dataUrl = await toPng(flowEl, { backgroundColor: '#111827', quality: 1 })
+      const dataUrl = await toPng(flowEl, { backgroundColor: lightBg ? '#ffffff' : '#111827', quality: 1 })
       const a = document.createElement('a')
       a.href = dataUrl
       a.download = `cartographie-${slug}-${Date.now()}.png`
@@ -118,7 +119,7 @@ export default function ExportPanel({ onClose }) {
       const { toSvg } = await import('html-to-image')
       const flowEl = document.querySelector('.react-flow')
       if (!flowEl) { alert('Impossible de capturer le graphe.'); return }
-      const dataUrl = await toSvg(flowEl, { backgroundColor: '#111827' })
+      const dataUrl = await toSvg(flowEl, { backgroundColor: lightBg ? '#ffffff' : '#111827' })
       const a = document.createElement('a')
       a.href = dataUrl
       a.download = `cartographie-${slug}-${Date.now()}.svg`
@@ -151,6 +152,17 @@ export default function ExportPanel({ onClose }) {
         </div>
 
         <div className="space-y-3">
+          <label className="flex items-center gap-3 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 cursor-pointer select-none">
+            <div
+              onClick={() => setLightBg(v => !v)}
+              className={`relative w-10 h-5 rounded-full transition-colors ${lightBg ? 'bg-blue-500' : 'bg-gray-600'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${lightBg ? 'translate-x-5' : ''}`} />
+            </div>
+            <span className="text-sm text-gray-300">Fond clair (impression)</span>
+            <span className="ml-auto text-xs text-gray-500">{lightBg ? '⬜ blanc' : '⬛ sombre'}</span>
+          </label>
+
           <div className="flex gap-2">
             <button
               onClick={handleExportPNG}

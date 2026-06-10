@@ -229,6 +229,8 @@ export default function GraphCanvas({ onNodeEdit, onConnect, onOpenAddApp, flowR
           id: f.id,
           source: f.sourceId,
           target: f.cibleId,
+          sourceHandle: f.sourceHandle || 'source-bottom',
+          targetHandle: f.targetHandle || 'target-top',
           type: 'fluxEdge',
           data: {
             flux: f,

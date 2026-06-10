@@ -362,6 +362,14 @@ Ces évolutions ont été implémentées au fil des phases sans être prévues d
 - **Protection de branche main** : push directs bloqués, tout changement passe par une PR (configuré via l'API GitHub)
 - **CI GitHub Actions** : lint ESLint (`--max-warnings 0`), build Vite, tests Vitest sur Node 24
 
+### Export
+
+- **Fond clair pour l'impression** : toggle dans `ExportPanel` — bascule le fond blanc (#ffffff) sur les exports PNG et SVG ; media query `@print` pour forcer le fond blanc lors de l'impression système
+
+### Flux — points de connexion
+
+- **Choix du handle source/cible** : chaque flux stocke `sourceHandle` (`source-top` / `source-bottom`) et `targetHandle` (`target-top` / `target-bottom`) ; sélecteurs ↑ Haut / ↓ Bas dans `QuickAddFlux` ; 4 handles nommés sur `AppNode` (haut et bas, source et target)
+
 ---
 
 ## Récapitulatif
