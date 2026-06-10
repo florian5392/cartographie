@@ -1,120 +1,55 @@
 import { useState } from 'react'
 import useSessionStore from '../../stores/sessionStore'
 
-function downloadBlob(content, filename, mimeType) {
-  const blob = new Blob([content], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
-
-function generateMarkdown({ session, applications, flux, etablissements, deploiements }) {
-  const lines = []
-  lines.push(`# Cartographie SI — ${session?.nom || 'Session'}`)
-  lines.push(`\n**Date** : ${session?.date || '—'}  `)
-  lines.push(`**Périmètre** : ${session?.perimetre || '—'}  `)
-  lines.push(`**Statut** : ${session?.statut || '—'}`)
-
-  lines.push(`\n## Applications (${applications.length})`)
-  lines.push('\n| Nom | Type | Éditeur | Criticité | Statut |')
-  lines.push('|-----|------|---------|-----------|--------|')
-  for (const app of applications) {
-    lines.push(`| ${app.nom} | ${app.type || '—'} | ${app.editeur || '—'} | ${app.criticite || '—'} | ${app.statut || '—'} |`)
-  }
-
-  lines.push(`\n## Flux (${flux.length})`)
-  lines.push('\n| Source | Cible | Couleur | Libellé | Fréquence | Critique |')
-  lines.push('|--------|-------|---------|---------|-----------|----------|')
-  for (const f of flux) {
-    const src = applications.find((a) => a.id === f.sourceId)?.nom || f.sourceId
-    const tgt = applications.find((a) => a.id === f.cibleId)?.nom || f.cibleId
-    lines.push(`| ${src} | ${tgt} | ${f.color || '—'} | ${f.label || '—'} | ${f.frequence || '—'} | ${f.critique ? 'Oui' : 'Non'} |`)
-  }
-
-  if (etablissements.length > 0) {
-    lines.push(`\n## Établissements (${etablissements.length})`)
-    lines.push('\n| Nom | Couleur |')
-    lines.push('|-----|---------|')
-    for (const e of etablissements) {
-      lines.push(`| ${e.nom} | ${e.couleur || '—'} |`)
-    }
-  }
-
-  if (deploiements.length > 0) {
-    lines.push(`\n## Déploiements (${deploiements.length})`)
-    lines.push('\n| Application | Établissement | Environnement |')
-    lines.push('|-------------|---------------|---------------|')
-    for (const d of deploiements) {
-      const app = applications.find((a) => a.id === d.applicationId)?.nom || d.applicationId
-      const etab = etablissements.find((e) => e.id === d.etablissementId)?.nom || d.etablissementId
-      lines.push(`| ${app} | ${etab} | ${d.environnement || '—'} |`)
-    }
-  }
-
-  const appsWithFlux = new Set([...flux.map((f) => f.sourceId), ...flux.map((f) => f.cibleId)])
-  const coveragePercent =
-    applications.length > 0 ? Math.round((appsWithFlux.size / applications.length) * 100) : 0
-  const criticalCount = applications.filter((a) => a.criticite === 'haute').length
-
-  lines.push('\n## KPIs')
-  lines.push('\n| Indicateur | Valeur |')
-  lines.push('|------------|--------|')
-  lines.push(`| Applications recensées | ${applications.length} |`)
-  lines.push(`| Flux tracés | ${flux.length} |`)
-  lines.push(`| Applications critiques | ${criticalCount} |`)
-  lines.push(`| Couverture | ${coveragePercent}% |`)
-  if (etablissements.length > 0) {
-    lines.push(`| Établissements | ${etablissements.length} |`)
-  }
-
-  return lines.join('\n')
-}
-
 export default function ExportPanel({ onClose }) {
   const { session, applications, flux, positions, etablissements, deploiements } = useSessionStore()
   const [exporting, setExporting] = useState(false)
   const [lightBg, setLightBg] = useState(false)
 
-  const handleExportJSON = () => {
-    const data = { session, applications, flux, positions, etablissements, deploiements }
-    downloadBlob(JSON.stringify(data, null, 2), `cartographie-${slug}-${Date.now()}.json`, 'application/json')
-  }
-
-  const handleExportMarkdown = () => {
-    const md = generateMarkdown({ session, applications, flux, etablissements, deploiements })
-    downloadBlob(md, `cartographie-${slug}-${Date.now()}.md`, 'text/markdown')
-  }
-
   const slug = session?.nom?.replace(/\s+/g, '-') || 'session'
+
+  const captureFlow = async (captureFn) => {
+    const flowEl = document.querySelector('.react-flow')
+    if (!flowEl) { alert('Impossible de capturer le graphe.'); return null }
+
+    const bgColor = lightBg ? '#ffffff' : '#111827'
+
+    // Force background on all ReactFlow layers via !important so html-to-image
+    // picks up the correct computed style when inlining CSS.
+    const styleEl = document.createElement('style')
+    styleEl.textContent = lightBg
+      ? `.react-flow, .react-flow__background, .react-flow__pane,
+         .react-flow__renderer, .react-flow__container,
+         .react-flow__viewport { background-color: #ffffff !important; background: #ffffff !important; }
+         .react-flow__node { color: #111827 !important; }
+         .react-flow__edge-label { color: #111827 !important; }`
+      : ''
+    document.head.appendChild(styleEl)
+
+    try {
+      return await captureFn(flowEl, bgColor)
+    } finally {
+      document.head.removeChild(styleEl)
+    }
+  }
 
   const handleExportPNG = async () => {
     setExporting(true)
     try {
       const { toPng } = await import('html-to-image')
-      const flowEl = document.querySelector('.react-flow')
-      if (!flowEl) { alert('Impossible de capturer le graphe.'); return }
-      const bgColor = lightBg ? '#ffffff' : '#111827'
-      const prevBg = flowEl.style.background
-      flowEl.style.background = bgColor
-      try {
-        const dataUrl = await toPng(flowEl, { backgroundColor: bgColor, quality: 1 })
-        const a = document.createElement('a')
-        a.href = dataUrl
-        a.download = `cartographie-${slug}-${Date.now()}.png`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-      } finally {
-        flowEl.style.background = prevBg
-      }
+      const dataUrl = await captureFlow((flowEl, bgColor) =>
+        toPng(flowEl, { backgroundColor: bgColor, quality: 1 })
+      )
+      if (!dataUrl) return
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `cartographie-${slug}-${Date.now()}.png`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
     } catch (err) {
       console.error('PNG export failed', err)
-      alert('Export PNG échoué. Essayez avec Ctrl+P pour imprimer.')
+      alert('Export PNG échoué.')
     } finally {
       setExporting(false)
     }
@@ -124,14 +59,10 @@ export default function ExportPanel({ onClose }) {
     setExporting(true)
     try {
       const { toSvg } = await import('html-to-image')
-      const flowEl = document.querySelector('.react-flow')
-      if (!flowEl) { alert('Impossible de capturer le graphe.'); return }
-      const bgColor = lightBg ? '#ffffff' : '#111827'
-      const prevBg = flowEl.style.background
-      flowEl.style.background = bgColor
-      const dataUrl = await toSvg(flowEl, { backgroundColor: bgColor }).finally(() => {
-        flowEl.style.background = prevBg
-      })
+      const dataUrl = await captureFlow((flowEl, bgColor) =>
+        toSvg(flowEl, { backgroundColor: bgColor })
+      )
+      if (!dataUrl) return
       const a = document.createElement('a')
       a.href = dataUrl
       a.download = `cartographie-${slug}-${Date.now()}.svg`
@@ -146,8 +77,17 @@ export default function ExportPanel({ onClose }) {
     }
   }
 
-  const handlePrint = () => {
-    window.print()
+  const handleExportJSON = () => {
+    const data = { session, applications, flux, positions, etablissements, deploiements }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `cartographie-${slug}-${Date.now()}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -201,17 +141,6 @@ export default function ExportPanel({ onClose }) {
           </div>
 
           <button
-            onClick={handleExportMarkdown}
-            className="w-full flex items-center gap-3 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors"
-          >
-            <span className="text-2xl">📝</span>
-            <div className="text-left">
-              <div className="font-medium">Export Markdown</div>
-              <div className="text-xs text-gray-400">Tableaux applications &amp; flux</div>
-            </div>
-          </button>
-
-          <button
             onClick={handleExportJSON}
             className="w-full flex items-center gap-3 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors"
           >
@@ -219,17 +148,6 @@ export default function ExportPanel({ onClose }) {
             <div className="text-left">
               <div className="font-medium">Export JSON</div>
               <div className="text-xs text-gray-400">Données complètes (import possible)</div>
-            </div>
-          </button>
-
-          <button
-            onClick={handlePrint}
-            className="w-full flex items-center gap-3 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors"
-          >
-            <span className="text-2xl">🖨️</span>
-            <div className="text-left">
-              <div className="font-medium">Imprimer</div>
-              <div className="text-xs text-gray-400">Dialogue d&apos;impression système</div>
             </div>
           </button>
         </div>
