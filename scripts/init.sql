@@ -54,8 +54,23 @@ CREATE TABLE api.flux (
   label TEXT,
   description TEXT,
   frequence TEXT,
-  critique BOOLEAN DEFAULT FALSE
+  critique BOOLEAN DEFAULT FALSE,
+  color TEXT,
+  source_handle TEXT,
+  target_handle TEXT,
+  ctrl_dx FLOAT,
+  ctrl_dy FLOAT,
+  label_dx FLOAT,
+  label_dy FLOAT
 );
+-- Migration pour bases existantes :
+-- ALTER TABLE api.flux ADD COLUMN IF NOT EXISTS color TEXT;
+-- ALTER TABLE api.flux ADD COLUMN IF NOT EXISTS source_handle TEXT;
+-- ALTER TABLE api.flux ADD COLUMN IF NOT EXISTS target_handle TEXT;
+-- ALTER TABLE api.flux ADD COLUMN IF NOT EXISTS ctrl_dx FLOAT;
+-- ALTER TABLE api.flux ADD COLUMN IF NOT EXISTS ctrl_dy FLOAT;
+-- ALTER TABLE api.flux ADD COLUMN IF NOT EXISTS label_dx FLOAT;
+-- ALTER TABLE api.flux ADD COLUMN IF NOT EXISTS label_dy FLOAT;
 
 -- Deploiements
 CREATE TABLE api.deploiements (
