@@ -46,11 +46,11 @@ function fromApplication(d) {
 }
 
 function toFlux(r) {
-  return { id: r.id, sessionId: r.session_id, sourceId: r.source_id, cibleId: r.cible_id, type: r.type, label: r.label, description: r.description, frequence: r.frequence, critique: r.critique }
+  return { id: r.id, sessionId: r.session_id, sourceId: r.source_id, cibleId: r.cible_id, type: r.type, label: r.label, description: r.description, frequence: r.frequence, critique: r.critique, color: r.color, sourceHandle: r.source_handle, targetHandle: r.target_handle, ctrlDx: r.ctrl_dx, ctrlDy: r.ctrl_dy, labelDx: r.label_dx, labelDy: r.label_dy }
 }
 
 function fromFlux(d) {
-  return { id: d.id, session_id: d.sessionId, source_id: d.sourceId, cible_id: d.cibleId, type: d.type, label: d.label, description: d.description, frequence: d.frequence, critique: d.critique }
+  return { id: d.id, session_id: d.sessionId, source_id: d.sourceId, cible_id: d.cibleId, type: d.type, label: d.label, description: d.description, frequence: d.frequence, critique: d.critique, color: d.color, source_handle: d.sourceHandle, target_handle: d.targetHandle, ctrl_dx: d.ctrlDx, ctrl_dy: d.ctrlDy, label_dx: d.labelDx, label_dy: d.labelDy }
 }
 
 function toEtablissement(r) { return { id: r.id, nom: r.nom, couleur: r.couleur } }
