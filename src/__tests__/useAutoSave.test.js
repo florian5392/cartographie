@@ -176,6 +176,22 @@ describe('useAutoSave — diff flux', () => {
     expect(api.deleteFlux).toHaveBeenCalledOnce()
     expect(api.deleteFlux).toHaveBeenCalledWith(FLUX1.id)
   })
+
+  it('met à jour (et non crée) un flux déjà en base chargé au montage', async () => {
+    // Simule l'ouverture d'une carto existante : le flux vient déjà de l'API,
+    // isDirty est false jusqu'à ce que l'utilisateur le modifie.
+    resetStore({ flux: [FLUX1], isDirty: false })
+    const { result, rerender } = renderHook(() => useAutoSave(99999))
+
+    const modifiedFlux = { ...FLUX1, cibleId: 'app-3' }
+    resetStore({ flux: [modifiedFlux], isDirty: true })
+    rerender()
+    await act(() => result.current.save())
+
+    expect(api.createFlux).not.toHaveBeenCalled()
+    expect(api.updateFlux).toHaveBeenCalledOnce()
+    expect(api.updateFlux).toHaveBeenCalledWith(FLUX1.id, modifiedFlux)
+  })
 })
 
 // ─── File offline ──────────────────────────────────────────────────────────────

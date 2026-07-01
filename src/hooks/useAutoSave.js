@@ -11,7 +11,36 @@ export function useAutoSave(interval = 30000) {
   const storeRef = useRef(null)
   storeRef.current = useSessionStore.getState()
 
-  const { isDirty } = useSessionStore((s) => ({ isDirty: s.isDirty }))
+  const { isDirty, sessionId, applications, flux } = useSessionStore((s) => ({
+    isDirty: s.isDirty,
+    sessionId: s.session?.id,
+    applications: s.applications,
+    flux: s.flux,
+  }))
+
+  const syncedSessionId = useRef(null)
+  const pendingSync = useRef(false)
+
+  // A session change first sets `session.id`, then loadSessionData resolves
+  // asynchronously and sets applications/flux/isDirty:false together. Mark the
+  // sync as pending on the id change, and only actually resync the "last saved"
+  // trackers once loadSessionData has finished (isDirty false) — otherwise every
+  // application/flux is mistaken for brand-new (never-saved) and create* gets
+  // called instead of update*, silently failing and losing edits.
+  useEffect(() => {
+    if (sessionId && syncedSessionId.current !== sessionId) {
+      syncedSessionId.current = sessionId
+      pendingSync.current = true
+    }
+  }, [sessionId])
+
+  useEffect(() => {
+    if (pendingSync.current && !isDirty) {
+      lastSavedApps.current = applications
+      lastSavedFlux.current = flux
+      pendingSync.current = false
+    }
+  }, [isDirty, applications, flux])
 
   const performSave = useCallback(async () => {
     const { session, applications, flux, positions, isDirty: dirty, markSaved, demoMode } =
